@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sift: SoundCloud, Tuned to You</title>
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+<!-- Controls Bar -->
+<div class="controls-bar" role="toolbar" aria-label="Queue settings">
+  <div class="control-group">
+    <div class="stepper" data-target="feed-ratio">
+      <button class="stepper-btn" data-dir="-1" aria-label="Decrease feed ratio">&minus;</button>
+      <span class="stepper-value" id="feed-ratio">1</span>
+      <button class="stepper-btn" data-dir="1" aria-label="Increase feed ratio">+</button>
+    </div>
+    <span class="ratio-text">track(s) from</span>
+    <label class="label-feed">Feed</label>
+    <span class="ratio-text">for every</span>
+    <div class="stepper" data-target="likes-ratio">
+      <button class="stepper-btn" data-dir="-1" aria-label="Decrease likes ratio">&minus;</button>
+      <span class="stepper-value" id="likes-ratio">3</span>
+      <button class="stepper-btn" data-dir="1" aria-label="Increase likes ratio">+</button>
+    </div>
+    <span class="ratio-text">track(s) from</span>
+    <label class="label-likes">Likes</label>
+  </div>
+  <div class="divider" aria-hidden="true"></div>
+  <div class="control-group">
+    <label for="min-duration">Min Duration</label>
+    <input class="num-input" id="min-duration" type="number" value="30" min="0" max="300" aria-label="Minimum duration in minutes">
+    <span class="ratio-text">min</span>
+  </div>
+  <div class="divider" aria-hidden="true"></div>
+  <button class="btn" id="btn-generate" title="Shift+Click to refresh data from SoundCloud">Generate Queue</button>
+  <button class="btn btn-ghost" id="btn-shuffle">Shuffle</button>
+  <div class="controls-spacer"></div>
+  <div class="controls-right">
+    <span class="credit-line">Open source &amp; built with <span class="credit-heart" aria-hidden="true">&hearts;</span> by <a href="https://artassoiants.com/" target="_blank" rel="noopener">Art Assoiants</a></span>
+    <div class="menu-wrap">
+      <button class="hamburger-btn" id="hamburger-btn" aria-label="Menu" aria-expanded="false" aria-haspopup="true">
+        <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><rect x="2" y="3" width="12" height="1.5" rx="0.75" fill="currentColor"/><rect x="2" y="7.25" width="12" height="1.5" rx="0.75" fill="currentColor"/><rect x="2" y="11.5" width="12" height="1.5" rx="0.75" fill="currentColor"/></svg>
+      </button>
+      <div class="menu-dropdown" id="menu-dropdown" role="menu">
+        <a class="menu-item" href="https://forms.gle/imyjC8MrewbizCMM9" target="_blank" rel="noopener" role="menuitem">Provide feedback</a>
+        <button class="menu-item" id="menu-likes-data" role="menuitem">View likes data</button>
+        <a class="menu-item" href="https://github.com/aassoiants/sift-music" target="_blank" rel="noopener" role="menuitem">View source code</a>
+        <div class="menu-divider" role="separator"></div>
+        <span class="menu-version">v0.1.0</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Loading Overlay -->
+<div class="loading-overlay" id="loading-overlay" style="display:none" role="status" aria-live="polite">
+  <div class="loading-content">
+    <div class="loading-ring" aria-hidden="true"></div>
+    <h1 class="loading-heading">Building your queue</h1>
+    <div class="loading-body">
+      <div class="loading-tagline" id="loading-tagline"></div>
+      <div class="loading-progress" id="loading-progress"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Queue -->
+<div class="queue-area">
+  <div class="queue-header">
+    <h2>Queue</h2>
+    <span class="queue-stats"></span>
+  </div>
+  <!-- Logged-out overlay (shown when not authenticated) -->
+  <div class="logged-out-overlay" id="logged-out-overlay" style="display:none" role="status" aria-label="Authentication required">
+    <div class="lo-card">
+      <div class="lo-icon" aria-hidden="true">
+        <svg width="28" height="28" viewBox="0 0 64 64" fill="none">
+          <line x1="4" y1="14" x2="22" y2="28" stroke="#ff6600" stroke-width="2.5" stroke-linecap="round"/>
+          <line x1="4" y1="26" x2="22" y2="30" stroke="#00aaff" stroke-width="2.5" stroke-linecap="round"/>
+          <line x1="4" y1="32" x2="22" y2="32" stroke="#ff6600" stroke-width="2.5" stroke-linecap="round"/>
+          <line x1="4" y1="38" x2="22" y2="34" stroke="#ff6600" stroke-width="2.5" stroke-linecap="round"/>
+          <line x1="4" y1="50" x2="22" y2="36" stroke="#00aaff" stroke-width="2.5" stroke-linecap="round"/>
+          <polygon points="22,22 22,42 38,32" fill="#ff6600" opacity="0.9"/>
+          <path d="M40 32 Q43 24, 46 32 Q49 40, 52 32 Q55 26, 58 32 L62 32" stroke="#fff" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+        </svg>
+      </div>
+      <div class="lo-title">Log into SoundCloud</div>
+      <div class="lo-text">
+        Open soundcloud.com in another tab and sign in.<br>Then come back here and hit Generate.
+      </div>
+      <a class="lo-link" href="https://soundcloud.com" target="_blank" rel="noopener" aria-label="Open soundcloud.com in a new tab">
+        Open soundcloud.com
+        <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><line x1="4" y1="12" x2="12" y2="4"/><polyline points="5,4 12,4 12,11"/></svg>
+      </a>
+      <div class="lo-hint">Opens in a new tab — keep this one open</div>
+      <div class="lo-footer">
+        <a href="https://forms.gle/imyjC8MrewbizCMM9" target="_blank" rel="noopener">Feedback</a>
+        <span class="lo-footer-dot" aria-hidden="true">·</span>
+        <a href="https://github.com/aassoiants/sift-music" target="_blank" rel="noopener">Source</a>
+        <span class="lo-footer-dot" aria-hidden="true">·</span>
+        <span>v0.1.0</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Player Bar -->
+<div class="player-bar" role="region" aria-label="Audio player">
+  <div class="player-controls">
+    <button class="player-btn" id="btn-prev" aria-label="Previous track">&#9198;</button>
+    <button class="player-btn play" id="btn-play" aria-label="Play"><svg class="btn-icon btn-icon-play" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><polygon points="5,2 5,14 14,8" fill="currentColor"/></svg><svg class="btn-icon btn-icon-pause" viewBox="0 0 16 16" width="16" height="16" style="display:none" aria-hidden="true"><rect x="4" y="3" width="3" height="10" rx="0.5" fill="currentColor"/><rect x="9" y="3" width="3" height="10" rx="0.5" fill="currentColor"/></svg><span class="btn-spinner" aria-hidden="true"><span class="btn-spinner-ring"></span></span></button>
+    <button class="player-btn" id="btn-next" aria-label="Next track">&#9197;</button>
+  </div>
+  <div class="player-track-info">
+    <div class="player-track-title">No track selected</div>
+    <div class="player-track-artist"></div>
+  </div>
+  <div class="player-progress">
+    <span class="progress-time progress-elapsed">0:00</span>
+    <div class="progress-bar" role="slider" aria-label="Seek" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+      <div class="progress-fill"></div>
+      <div class="progress-tooltip" id="progress-tooltip">0:00</div>
+    </div>
+    <span class="progress-time progress-total">0:00</span>
+  </div>
+</div>
+
+<!-- Likes Data Modal -->
+<div class="likes-modal-overlay" id="likes-modal" style="display:none" role="dialog" aria-modal="true" aria-label="Your likes data">
+  <div class="likes-modal">
+    <div class="likes-modal-header">
+      <span class="likes-modal-title">Your Likes</span>
+      <button class="likes-modal-btn" id="likes-modal-copy" title="Copy to clipboard" aria-label="Copy likes data to clipboard">
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="5" y="5" width="9" height="9" rx="1.5"/><path d="M3 11V3a1.5 1.5 0 0 1 1.5-1.5H11"/></svg>
+      </button>
+      <button class="likes-modal-btn" id="likes-modal-close" title="Close" aria-label="Close modal">
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><line x1="4" y1="4" x2="12" y2="12"/><line x1="12" y1="4" x2="4" y2="12"/></svg>
+      </button>
+    </div>
+    <div class="likes-modal-body" id="likes-modal-body">
+      <!-- Populated dynamically by JS -->
+    </div>
+  </div>
+</div>
+
+<!-- hls.js for HLS audio playback (bundled locally, CSP compliant) -->
+<script src="lib/hls.light.min.js"></script>
+<script type="module" src="js/app.js"></script>
+
+</body>
+</html>
