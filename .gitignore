@@ -1,0 +1,45 @@
+# Personal data (listening history, liked tracks, feed)
+all-likes.json
+all-feed.json
+sample-likes.json
+sample-feed.json
+raw-response.json
+raw-feed-response.json
+
+# Dev fetch scripts (contain user-specific tokens/IDs)
+fetch-*.js
+
+# Node.js (dev server only, not part of extension)
+node_modules/
+package.json
+package-lock.json
+server.js
+
+# Mockups (design artifacts, not shipped)
+mockup-*.html
+
+# Extension signing key (NEVER commit)
+extension.pem
+
+# Packed extension (distribute via GitHub Releases)
+extension.crx
+
+# Old design mockups
+archive/
+
+# Dev tools
+generate-icons.html
+
+# Windows junk
+nul
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Environment secrets
+.env
+.env.*
+
+# Claude config
+.claude/

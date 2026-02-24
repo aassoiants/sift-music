@@ -1,0 +1,45 @@
+{
+  "manifest_version": 3,
+  "name": "Sift: SoundCloud, Tuned to You",
+  "version": "0.1.0",
+  "description": "Set your music free. Jump into a world where old SoundCloud favorites surprise you alongside new discoveries from your feed. Customizable, effortless, liberating.",
+  "permissions": [
+    "cookies",
+    "storage",
+    "tabs"
+  ],
+  "host_permissions": [
+    "https://soundcloud.com/*",
+    "https://api-v2.soundcloud.com/*",
+    "https://*.sndcdn.com/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://soundcloud.com/*"],
+      "js": ["content-relay.js"],
+      "run_at": "document_start"
+    },
+    {
+      "matches": ["https://soundcloud.com/*"],
+      "js": ["content.js"],
+      "run_at": "document_start",
+      "world": "MAIN"
+    }
+  ],
+  "action": {
+    "default_icon": {
+      "16": "images/icon-16.png",
+      "48": "images/icon-48.png",
+      "128": "images/icon-128.png"
+    },
+    "default_title": "Sift"
+  },
+  "icons": {
+    "16": "images/icon-16.png",
+    "48": "images/icon-48.png",
+    "128": "images/icon-128.png"
+  }
+}
