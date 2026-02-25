@@ -151,6 +151,10 @@ Some things that'd be nice to have:
 - Offline queue caching
 - Better error handling when SC is down
 
+## Acknowledgements
+
+SoundCloud's accessible API helps democratize what people can build around music. Sift wouldn't exist without it. Neither would many other independent tools that give listeners and creators more control over how we experience music.
+
 ## License
 
 [MIT](LICENSE)

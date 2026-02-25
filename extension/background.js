@@ -39,4 +39,27 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     });
     return true;
   }
+
+  // SC tab detection: check if any soundcloud.com tab exists
+  if (msg.type === 'CHECK_SC_TAB') {
+    chrome.tabs.query({ url: 'https://soundcloud.com/*' }, (tabs) => {
+      sendResponse({ hasSCTab: tabs.length > 0 });
+    });
+    return true;
+  }
+});
+
+// ── SC tab status broadcasting ──────────────────────────────
+
+async function broadcastSCTabStatus() {
+  const scTabs = await chrome.tabs.query({ url: 'https://soundcloud.com/*' });
+  chrome.runtime.sendMessage({ type: 'SC_TAB_STATUS', hasSCTab: scTabs.length > 0 }).catch(() => {
+    // App tab may not be open — ignore
+  });
+}
+
+chrome.tabs.onCreated.addListener(() => broadcastSCTabStatus());
+chrome.tabs.onRemoved.addListener(() => setTimeout(broadcastSCTabStatus, 100));
+chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
+  if (changeInfo.url) broadcastSCTabStatus();
 });

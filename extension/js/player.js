@@ -41,7 +41,7 @@ export function initPlayer({ onFinish, onProgress, onPlayState, onLoading }) {
 
   // Buffering: show shimmer when audio stalls mid-playback (wifi drop, slow network, etc.)
   audio.addEventListener('waiting', () => {
-    if (onLoadingCallback) onLoadingCallback(true);
+    if (audio.src && onLoadingCallback) onLoadingCallback(true);
   });
 
   audio.addEventListener('playing', () => {
@@ -56,6 +56,7 @@ export function initPlayer({ onFinish, onProgress, onPlayState, onLoading }) {
 
   audio.addEventListener('error', (e) => {
     console.error('[SCQ player] Audio error:', audio.error?.message || e);
+    if (onLoadingCallback) onLoadingCallback(false);
     if (onPlayStateCallback) onPlayStateCallback(false);
   });
 }
@@ -199,4 +200,8 @@ export function seekTo(fraction) {
   if (audio && audio.duration && !isNaN(audio.duration)) {
     audio.currentTime = audio.duration * fraction;
   }
+}
+
+export function hasAudioSource() {
+  return audio && !!audio.src;
 }

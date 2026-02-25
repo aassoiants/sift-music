@@ -6,7 +6,7 @@ const PAGE_SIZE = 200;
 const FEED_MAX_ITEMS = 1000;
 const CACHE_KEY_LIKES = 'scq-cached-likes';
 const CACHE_KEY_FEED = 'scq-cached-feed';
-const CACHE_TTL_MS = 30 * 60 * 1000; // 30 minutes
+// Cache persists until explicit clearCache() (Shift+Click Generate)
 
 function getAuth() {
   return new Promise((resolve) => {
@@ -121,13 +121,10 @@ async function fetchAllFeed(oauthToken, clientId, onProgress) {
 }
 
 export async function fetchLikes(onProgress) {
-  // Check cache
+  // Check cache (persists until explicit clearCache)
   const cached = await chrome.storage.local.get(CACHE_KEY_LIKES);
-  if (cached[CACHE_KEY_LIKES]) {
-    const { data, timestamp } = cached[CACHE_KEY_LIKES];
-    if (Date.now() - timestamp < CACHE_TTL_MS) {
-      return data;
-    }
+  if (cached[CACHE_KEY_LIKES]?.data) {
+    return cached[CACHE_KEY_LIKES].data;
   }
 
   const { oauthToken, clientId } = await getAuth();
@@ -141,12 +138,10 @@ export async function fetchLikes(onProgress) {
 }
 
 export async function fetchFeed(onProgress) {
+  // Check cache (persists until explicit clearCache)
   const cached = await chrome.storage.local.get(CACHE_KEY_FEED);
-  if (cached[CACHE_KEY_FEED]) {
-    const { data, timestamp } = cached[CACHE_KEY_FEED];
-    if (Date.now() - timestamp < CACHE_TTL_MS) {
-      return data;
-    }
+  if (cached[CACHE_KEY_FEED]?.data) {
+    return cached[CACHE_KEY_FEED].data;
   }
 
   const { oauthToken, clientId } = await getAuth();

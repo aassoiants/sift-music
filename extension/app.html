@@ -104,6 +104,38 @@
       </div>
     </div>
   </div>
+  <!-- No-SC-tab overlay (shown when authenticated but no SoundCloud tab open) -->
+  <div class="no-sc-tab-overlay" id="no-sc-tab-overlay" style="display:none" role="status" aria-label="SoundCloud tab required">
+    <div class="lo-card">
+      <div class="lo-icon" aria-hidden="true">
+        <svg width="28" height="28" viewBox="0 0 64 64" fill="none">
+          <line x1="4" y1="14" x2="22" y2="28" stroke="#ff6600" stroke-width="2.5" stroke-linecap="round"/>
+          <line x1="4" y1="26" x2="22" y2="30" stroke="#00aaff" stroke-width="2.5" stroke-linecap="round"/>
+          <line x1="4" y1="32" x2="22" y2="32" stroke="#ff6600" stroke-width="2.5" stroke-linecap="round"/>
+          <line x1="4" y1="38" x2="22" y2="34" stroke="#ff6600" stroke-width="2.5" stroke-linecap="round"/>
+          <line x1="4" y1="50" x2="22" y2="36" stroke="#00aaff" stroke-width="2.5" stroke-linecap="round"/>
+          <polygon points="22,22 22,42 38,32" fill="#ff6600" opacity="0.9"/>
+          <path d="M40 32 Q43 24, 46 32 Q49 40, 52 32 Q55 26, 58 32 L62 32" stroke="#fff" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+        </svg>
+      </div>
+      <div class="lo-title">Open a SoundCloud Tab</div>
+      <div class="lo-text">
+        Sift can't play or load tracks without an active SoundCloud tab. Open one and this screen goes away automatically.
+      </div>
+      <a class="lo-link" href="https://soundcloud.com" target="_blank" rel="noopener" aria-label="Open soundcloud.com in a new tab">
+        Open soundcloud.com
+        <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><line x1="4" y1="12" x2="12" y2="4"/><polyline points="5,4 12,4 12,11"/></svg>
+      </a>
+      <div class="lo-hint">Opens in a new tab — keep this one open</div>
+      <div class="lo-footer">
+        <a href="https://forms.gle/imyjC8MrewbizCMM9" target="_blank" rel="noopener">Feedback</a>
+        <span class="lo-footer-dot" aria-hidden="true">·</span>
+        <a href="https://github.com/aassoiants/sift-music" target="_blank" rel="noopener">Source</a>
+        <span class="lo-footer-dot" aria-hidden="true">·</span>
+        <span>v0.1.0</span>
+      </div>
+    </div>
+  </div>
 </div>
 
 <!-- Player Bar -->

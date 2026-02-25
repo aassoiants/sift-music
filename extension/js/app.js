@@ -3,7 +3,7 @@
 import { fetchLikes, fetchFeed, clearCache } from './api.js';
 import { generateQueue, shuffleQueue } from './queue.js';
 import { renderQueue, updatePlayerBar, updateProgress, scrollToPlaying, escapeHtml } from './ui.js';
-import { initPlayer, loadTrack, toggle, seekTo } from './player.js';
+import { initPlayer, loadTrack, toggle, seekTo, hasAudioSource } from './player.js';
 
 const STORAGE_KEY = 'scq-state';
 
@@ -49,12 +49,16 @@ async function checkAuth() {
         if (likesDataBtn) likesDataBtn.style.display = '';
         if (controlsBar) controlsBar.style.display = '';
         if (playerBar) playerBar.style.display = '';
+        checkSCTab();
       } else {
         if (loggedOutOverlay) loggedOutOverlay.style.display = 'flex';
         if (queueArea) queueArea.classList.remove('dimmed');
         if (likesDataBtn) likesDataBtn.style.display = 'none';
         if (controlsBar) controlsBar.style.display = 'none';
         if (playerBar) playerBar.style.display = 'none';
+        // Hide no-SC-tab overlay — logged-out takes priority
+        const noSCOverlay = document.getElementById('no-sc-tab-overlay');
+        if (noSCOverlay) noSCOverlay.style.display = 'none';
         // Reset player bar — no track info when logged out
         updatePlayerBar(null);
         updateProgress(0, 0);
@@ -63,6 +67,37 @@ async function checkAuth() {
     });
   });
 }
+
+// ── SC Tab Detection ─────────────────────────────────────────
+
+function showOrHideNoSCTabOverlay(hasSCTab) {
+  const overlay = document.getElementById('no-sc-tab-overlay');
+  const loggedOutOverlay = document.getElementById('logged-out-overlay');
+  const loggedOutShowing = loggedOutOverlay?.style.display !== 'none';
+
+  // Only show when authenticated AND no SC tab AND logged-out overlay is NOT showing
+  if (!hasSCTab && !loggedOutShowing) {
+    overlay.style.display = 'flex';
+  } else {
+    overlay.style.display = 'none';
+  }
+}
+
+async function checkSCTab() {
+  return new Promise((resolve) => {
+    chrome.runtime.sendMessage({ type: 'CHECK_SC_TAB' }, (response) => {
+      showOrHideNoSCTabOverlay(response?.hasSCTab);
+      resolve(response?.hasSCTab);
+    });
+  });
+}
+
+// Listen for SC tab status changes pushed from background
+chrome.runtime.onMessage.addListener((msg) => {
+  if (msg.type === 'SC_TAB_STATUS') {
+    showOrHideNoSCTabOverlay(msg.hasSCTab);
+  }
+});
 
 // ── Settings ────────────────────────────────────────────────
 
@@ -528,12 +563,25 @@ async function init() {
 
   // Player bar buttons
   document.getElementById('btn-prev').addEventListener('click', playPrev);
-  document.getElementById('btn-play').addEventListener('click', () => toggle());
+  document.getElementById('btn-play').addEventListener('click', () => {
+    // If no audio loaded but we have a current track, load it first
+    if (!hasAudioSource() && state.currentIndex >= 0) {
+      playAtIndex(state.currentIndex);
+    } else {
+      toggle();
+    }
+  });
   document.getElementById('btn-next').addEventListener('click', playNext);
 
   // Media Session (Global Media Controls in Chrome toolbar)
   if ('mediaSession' in navigator) {
-    navigator.mediaSession.setActionHandler('play', () => toggle());
+    navigator.mediaSession.setActionHandler('play', () => {
+      if (!hasAudioSource() && state.currentIndex >= 0) {
+        playAtIndex(state.currentIndex);
+      } else {
+        toggle();
+      }
+    });
     navigator.mediaSession.setActionHandler('pause', () => toggle());
     navigator.mediaSession.setActionHandler('previoustrack', playPrev);
     navigator.mediaSession.setActionHandler('nexttrack', playNext);

@@ -208,8 +208,9 @@ body { background: #0d0d0d; color: #e0e0e0; font-family: 'Segoe UI', system-ui, 
   font-size: 13px;
 }
 
-/* ── Logged-Out Overlay (inside queue-area) ── */
-.logged-out-overlay {
+/* ── Logged-Out / No-SC-Tab Overlay (inside queue-area) ── */
+.logged-out-overlay,
+.no-sc-tab-overlay {
   position: absolute;
   inset: 0;
   z-index: 50;
