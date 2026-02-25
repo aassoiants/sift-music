@@ -393,12 +393,6 @@ body { background: #0d0d0d; color: #e0e0e0; font-family: 'Segoe UI', system-ui, 
   justify-content: center;
 }
 .track-action-btn:hover { color: #fff; }
-.drag-handle {
-  color: #888;
-  cursor: grab;
-  font-size: 11px;
-  flex-shrink: 0;
-}
 
 /* ── Bottom: Player Bar ── */
 .player-bar {

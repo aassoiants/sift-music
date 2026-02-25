@@ -633,9 +633,12 @@ async function init() {
 
     if (totalSec > 0) {
       const hoverSec = Math.floor(fraction * totalSec);
-      const min = Math.floor(hoverSec / 60);
+      const hrs = Math.floor(hoverSec / 3600);
+      const min = Math.floor((hoverSec % 3600) / 60);
       const sec = hoverSec % 60;
-      tooltip.textContent = `${min}:${sec.toString().padStart(2, '0')}`;
+      tooltip.textContent = hrs > 0
+        ? `${hrs}:${min.toString().padStart(2, '0')}:${sec.toString().padStart(2, '0')}`
+        : `${min}:${sec.toString().padStart(2, '0')}`;
     } else {
       tooltip.textContent = '0:00';
     }

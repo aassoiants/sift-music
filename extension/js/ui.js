@@ -23,8 +23,12 @@ function formatDuration(minutes) {
 
 function formatTime(ms) {
   const totalSec = Math.floor(ms / 1000);
-  const min = Math.floor(totalSec / 60);
+  const hrs = Math.floor(totalSec / 3600);
+  const min = Math.floor((totalSec % 3600) / 60);
   const sec = totalSec % 60;
+  if (hrs > 0) {
+    return `${hrs}:${min.toString().padStart(2, '0')}:${sec.toString().padStart(2, '0')}`;
+  }
   return `${min}:${sec.toString().padStart(2, '0')}`;
 }
 
@@ -59,7 +63,7 @@ export function renderQueue(queue, currentIndex, { onTrackClick, onRemove, onSki
   queue.forEach((track, i) => {
     const row = createTrackRow(track, i, i === currentIndex);
     row.addEventListener('click', (e) => {
-      if (e.target.closest('.track-action-btn') || e.target.closest('.drag-handle')) return;
+      if (e.target.closest('.track-action-btn')) return;
       onTrackClick(i);
     });
     row.addEventListener('keydown', (e) => {
@@ -92,7 +96,6 @@ function createTrackRow(track, index, isPlaying) {
 
   row.innerHTML = `
     <span class="track-num">${isPlaying ? '<span class="track-playing-icon">&#9654;</span>' : index + 1}</span>
-    <span class="drag-handle">&#8942;&#8942;</span>
     <div class="track-info">
       <div class="track-title">${escapeHtml(track.title)}</div>
       <span class="track-artist">${escapeHtml(track.artist)}</span>
