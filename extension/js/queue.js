@@ -93,9 +93,11 @@ export function shuffleQueue(queue, currentIndex) {
   const currentTrack = currentIndex >= 0 ? queue[currentIndex] : null;
   shuffleArray(queue);
   if (currentTrack) {
-    const idx = queue.indexOf(currentTrack);
-    queue.splice(idx, 1);
-    queue.unshift(currentTrack);
+    const idx = queue.findIndex(t => t.permalink_url === currentTrack.permalink_url);
+    if (idx >= 0) {
+      queue.splice(idx, 1);
+      queue.unshift(currentTrack);
+    }
     return 0; // new currentIndex
   }
   return currentIndex;

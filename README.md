@@ -6,13 +6,13 @@
 
 ## The problem
 
-You've liked hundreds — maybe thousands — of tracks on SoundCloud over the years. DJ sets, mixes, deep cuts. They're all still there, but SoundCloud doesn't do a great job letting you listen back through them. No shuffle across years. No way to weave old likes with your new feed. No duration filter. Your favorites from five years ago are pretty much gone.
+You've liked hundreds, maybe thousands of tracks on SoundCloud over the years. DJ sets, mixes, deep cuts. They're all still there, but SoundCloud doesn't do a great job letting you listen back through them. No shuffle across years. No way to weave old likes with your new feed. No duration filter. Your favorites from five years ago are pretty much gone.
 
 Meanwhile, your feed keeps moving. New reposts, new releases. You can listen to one or the other, but never both in a single session that feels right.
 
 ## What this solves
 
-Sift fetches your **complete like history** and your **current feed**, then builds a single queue that interleaves the two — with your likes spread evenly across every year you've been listening.
+Sift fetches your **complete like history** and your **current feed**, then builds a single queue that interleaves the two, with your likes spread evenly across every year you've been listening.
 
 You control:
 - **The mix ratio** — how many feed tracks for every X likes (e.g., "1 feed track for every 3 likes")
@@ -23,24 +23,24 @@ You end up with a queue where a 2012 deep cut sits next to yesterday's repost, f
 
 ## Features
 
-- **Year-spread randomization** — round-robin across all years so old and recent likes are evenly represented
-- **Configurable feed/likes ratio** — set exactly how many feed tracks per X likes
-- **Duration filtering** — minimum track length in minutes
-- **Built-in audio player** — HLS streaming directly in the extension, no SoundCloud tab needed
-- **Queue persistence** — close the tab, come back later, queue and position are still there
-- **Auto-recovery** — left it paused for hours? It re-resolves the stream and picks up where you stopped
-- **Buffering indicators** — shimmer UI on network stalls so it doesn't feel broken
-- **Global Media Controls** — track title and artist show in your browser's media panel, with play/pause/next/prev
-- **Likes data modal** — stats on your full like history: total hours, duration breakdown, tracks by year, top genres, top artists
-- **Logged-out detection** — clear overlay with instructions when you're not signed in, auto-detects when you log in
-- **Singleton tab** — clicking the extension icon refocuses the existing Sift tab instead of opening duplicates
-- **Accessible** — WCAG AA contrast, keyboard navigation for tracks and progress bar, aria labels, focus-visible outlines, 11px minimum font size
+- **Year-spread randomization**: round-robin across all years so old and recent likes are evenly represented
+- **Configurable feed/likes ratio**: set exactly how many feed tracks per X likes
+- **Duration filtering**: minimum track length in minutes
+- **Built-in audio player**: HLS streaming directly in the extension, no SoundCloud tab needed
+- **Queue persistence**: close the tab, come back later, queue and position are still there
+- **Auto-recovery**: left it paused for hours? It re-resolves the stream and picks up where you stopped
+- **Buffering indicators**: shimmer UI on network stalls so it doesn't feel broken
+- **Global Media Controls**: track title and artist show in your browser's media panel, with play/pause/next/prev
+- **Likes data modal**: stats on your full like history: total hours, duration breakdown, tracks by year, top genres, top artists
+- **Logged-out detection**: overlay with instructions when you're not signed in, auto-detects when you log in
+- **Singleton tab**: clicking the extension icon refocuses the existing Sift tab instead of opening duplicates
+- **Accessible**: WCAG AA contrast, keyboard navigation for tracks and progress bar, aria labels, focus-visible outlines, 11px minimum font size
 
 ## Privacy
 
 **Nothing leaves your browser.** No analytics, no tracking, no telemetry, no external servers.
 
-The only network requests go to SoundCloud's own API to fetch your likes and feed. Auth uses your existing SoundCloud session cookie — the extension never sees your password. There are no accounts to create, no sign-ups, no third-party services involved. No usage data or personal information is recorded or sent anywhere.
+The only network requests go to SoundCloud's own API to fetch your likes and feed. Auth uses your existing SoundCloud session cookie. The extension never sees your password. No accounts to create, no sign-ups, no third-party services. No usage data or personal information is recorded or sent anywhere.
 
 Source is open. Read it.
 
@@ -67,7 +67,7 @@ This is a Chrome extension distributed as a download (not on the Chrome Web Stor
 - **Generate Queue** fetches your data and builds the queue based on your ratio and duration settings
 - Click any track in the queue to start playing
 - **Shuffle** re-randomizes the order while preserving year-spread balance
-- **Shift+Click Generate** to force-refresh data from SoundCloud (bypasses the 30-minute cache)
+- **Shift+Click Generate** to force-refresh data from SoundCloud (clears the cache)
 - The player bar at the bottom has prev/play/next and a seekable progress bar
 
 ## Disclaimer
@@ -82,10 +82,10 @@ If you want to fork this, contribute, or just poke around — here's how it all 
 
 ## Tech stack
 
-- **Chrome Extension Manifest V3** — full-tab UI, service worker background, content script auth relay
-- **SoundCloud API v2** — direct fetch with OAuth, no unofficial libraries
-- **hls.js** (light build, ~100KB) — bundled locally for HLS audio streaming, CSP-compliant
-- **Vanilla JS** — no frameworks, no build step, no dependencies beyond hls.js
+- **Chrome Extension Manifest V3**: full-tab UI, service worker background, content script auth relay
+- **SoundCloud API v2**: direct fetch with OAuth, no unofficial libraries
+- **hls.js** (light build, ~100KB): bundled locally for HLS audio streaming, CSP-compliant
+- **Vanilla JS**: no frameworks, no build step, no dependencies beyond hls.js
 
 ## Architecture
 
@@ -120,7 +120,7 @@ Piggybacks on your existing SoundCloud session. Never touches passwords or login
 
 ### Queue algorithm
 
-1. Fetch all likes + all feed items from SoundCloud API (paginated, cached for 30 minutes)
+1. Fetch all likes + all feed items from SoundCloud API (paginated, cached until explicit refresh)
 2. Filter both sets by minimum duration
 3. Deduplicate feed (remove any track that already appears in likes)
 4. Group likes by upload year → shuffle each year's bucket → round-robin select across all years
@@ -134,7 +134,7 @@ SoundCloud's `media.transcodings` array gives you API endpoints, not actual stre
 1. Selects the best transcoding (priority: HLS MP3 → HLS AAC → any HLS → progressive)
 2. Resolves the actual CDN manifest URL by calling the transcoding endpoint with `client_id` + OAuth
 3. Passes the manifest to hls.js, which handles segment fetching and `<audio>` playback
-4. On fatal network errors (typically expired CDN URLs after long idle), captures the current playback position, re-resolves a fresh stream URL, and seeks back — with the same loading shimmer UI shown during initial track load
+4. On fatal network errors (typically expired CDN URLs after long idle), captures the current playback position, re-resolves a fresh stream URL, and seeks back. Same loading shimmer UI as initial track load
 5. Listens for `waiting`/`playing` events on the audio element to show buffering indicators on any network stall
 
 ## Contributing
@@ -153,7 +153,7 @@ Some things that'd be nice to have:
 
 ## Acknowledgements
 
-SoundCloud's accessible API helps democratize what people can build around music. Sift wouldn't exist without it. Neither would many other independent tools that give listeners and creators more control over how we experience music.
+SoundCloud's API makes it possible for anyone to build around music. Sift wouldn't exist without it. Same goes for many other independent tools that give listeners and creators more control over how they experience music.
 
 ## License
 

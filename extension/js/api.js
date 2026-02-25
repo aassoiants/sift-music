@@ -62,7 +62,7 @@ async function fetchAllLikes(oauthToken, clientId, onProgress) {
       return {
         track_id: t.id,
         title: t.title,
-        artist: t.user?.username,
+        artist: t.user?.username || 'Unknown',
         duration_ms: t.duration,
         duration_min: Math.round((t.duration / 60000) * 10) / 10,
         permalink_url: t.permalink_url,
@@ -101,7 +101,7 @@ async function fetchAllFeed(oauthToken, clientId, onProgress) {
       return {
         track_id: t.id,
         title: t.title,
-        artist: t.user?.username,
+        artist: t.user?.username || 'Unknown',
         duration_ms: t.duration,
         duration_min: Math.round((t.duration / 60000) * 10) / 10,
         permalink_url: t.permalink_url,

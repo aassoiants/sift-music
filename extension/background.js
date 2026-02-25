@@ -4,17 +4,18 @@
 
 chrome.action.onClicked.addListener(async () => {
   const appUrl = chrome.runtime.getURL('app.html');
-  const tabs = await chrome.tabs.query({ url: appUrl });
-  if (tabs.length > 0) {
-    // Focus the first match; close any accidental duplicates
-    chrome.tabs.update(tabs[0].id, { active: true });
-    chrome.windows.update(tabs[0].windowId, { focused: true });
-    for (let i = 1; i < tabs.length; i++) {
-      chrome.tabs.remove(tabs[i].id);
+  try {
+    // Ask the app tab if it's open (ping-pong — no tabs permission needed)
+    const response = await chrome.runtime.sendMessage({ type: 'PING' });
+    if (response?.tabId) {
+      chrome.tabs.update(response.tabId, { active: true });
+      chrome.windows.update(response.windowId, { focused: true });
+      return;
     }
-  } else {
-    chrome.tabs.create({ url: appUrl });
+  } catch (e) {
+    // No listener = app not open — fall through to create
   }
+  chrome.tabs.create({ url: appUrl });
 });
 
 // ── Message handler (auth only) ────────────────────────────

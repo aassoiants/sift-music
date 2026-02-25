@@ -23,6 +23,7 @@ extension.pem
 
 # Packed extension (distribute via GitHub Releases)
 extension.crx
+*.zip
 
 # Old design mockups
 archive/

@@ -23,7 +23,9 @@ function saveState() {
     currentIndex: state.currentIndex,
     settings: getSettings(),
   };
-  chrome.storage.local.set({ [STORAGE_KEY]: data });
+  chrome.storage.local.set({ [STORAGE_KEY]: data }).catch((err) => {
+    console.error('[Sift] Failed to save state:', err);
+  });
 }
 
 async function loadSavedState() {
@@ -92,20 +94,31 @@ async function checkSCTab() {
   });
 }
 
-// Listen for SC tab status changes pushed from background
-chrome.runtime.onMessage.addListener((msg) => {
+// Listen for messages from background
+chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   if (msg.type === 'SC_TAB_STATUS') {
     showOrHideNoSCTabOverlay(msg.hasSCTab);
+  }
+  // Ping-pong: background asks if app tab is open, we reply with our tab ID
+  if (msg.type === 'PING') {
+    chrome.tabs.getCurrent((tab) => {
+      sendResponse({ tabId: tab?.id, windowId: tab?.windowId });
+    });
+    return true;
   }
 });
 
 // ── Settings ────────────────────────────────────────────────
 
 function getSettings() {
-  const feedRatio = parseInt(document.getElementById('feed-ratio').textContent) || 1;
-  const likesRatio = parseInt(document.getElementById('likes-ratio').textContent) || 3;
-  const minDuration = parseInt(document.getElementById('min-duration').value) || 30;
-  return { feedRatio, likesRatio, minDuration };
+  const feedRatio = parseInt(document.getElementById('feed-ratio').textContent);
+  const likesRatio = parseInt(document.getElementById('likes-ratio').textContent);
+  const minDuration = parseInt(document.getElementById('min-duration').value);
+  return {
+    feedRatio: isNaN(feedRatio) ? 1 : feedRatio,
+    likesRatio: isNaN(likesRatio) ? 3 : likesRatio,
+    minDuration: isNaN(minDuration) ? 30 : minDuration,
+  };
 }
 
 // ── Rendering ───────────────────────────────────────────────
@@ -265,7 +278,10 @@ async function handleGenerate(forceRefresh = false) {
     if (playingTrack) {
       const newIdx = state.queue.findIndex((t) => t.permalink_url === playingTrack.permalink_url);
       if (newIdx >= 0) {
-        state.currentIndex = newIdx;
+        // Move playing track to top of new queue
+        state.queue.splice(newIdx, 1);
+        state.queue.unshift(playingTrack);
+        state.currentIndex = 0;
       } else {
         state.currentIndex = -1;
       }
@@ -275,7 +291,9 @@ async function handleGenerate(forceRefresh = false) {
       updateProgress(0, 0);
     }
     render();
+    scrollToPlaying();
     saveState();
+    btn.textContent = 'Generate Queue';
   } catch (err) {
     if (err.message === 'NOT_AUTHENTICATED') {
       btn.textContent = 'Log into soundcloud.com first';
@@ -290,7 +308,6 @@ async function handleGenerate(forceRefresh = false) {
   } finally {
     hideLoading();
     btn.disabled = false;
-    btn.textContent = 'Generate Queue';
   }
 }
 

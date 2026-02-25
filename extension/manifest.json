@@ -5,8 +5,7 @@
   "description": "Set your music free. Jump into a world where old SoundCloud favorites surprise you alongside new discoveries from your feed. Customizable, effortless, liberating.",
   "permissions": [
     "cookies",
-    "storage",
-    "tabs"
+    "storage"
   ],
   "host_permissions": [
     "https://soundcloud.com/*",

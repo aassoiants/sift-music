@@ -12,6 +12,7 @@ let onLoadingCallback = null;
 let currentTrack = null;       // track object for stream re-resolution
 let recoveryAttempts = 0;      // prevent infinite recovery loops
 const MAX_RECOVERY_ATTEMPTS = 2;
+let currentLoadId = 0;         // generation counter: prevents stale loads from racing
 
 export function initPlayer({ onFinish, onProgress, onPlayState, onLoading }) {
   onFinishCallback = onFinish;
@@ -63,11 +64,12 @@ export function initPlayer({ onFinish, onProgress, onPlayState, onLoading }) {
 
 export async function loadTrack(track, autoPlay = true) {
   console.log('[SCQ player] loadTrack:', track.title);
+  const loadId = ++currentLoadId;
   currentTrack = track;
   recoveryAttempts = 0;
   if (onLoadingCallback) onLoadingCallback(true);
 
-  await _loadStream(track, autoPlay);
+  await _loadStream(track, autoPlay, null, loadId);
 }
 
 /**
@@ -75,9 +77,16 @@ export async function loadTrack(track, autoPlay = true) {
  * Called by loadTrack() on first load, and by _recoverStream() on stale-URL retry.
  * @param {number|null} resumeAt — seconds to seek to after manifest loads (recovery only)
  */
-async function _loadStream(track, autoPlay = true, resumeAt = null) {
+async function _loadStream(track, autoPlay = true, resumeAt = null, loadId = currentLoadId) {
   try {
     const stream = await getStreamUrl(track);
+
+    // Stale load guard: a newer loadTrack call was made while we were resolving
+    if (loadId !== currentLoadId) {
+      console.log('[SCQ player] Stale load cancelled (id', loadId, 'vs current', currentLoadId + ')');
+      return;
+    }
+
     console.log('[SCQ player] Stream resolved:', stream.protocol, stream.url.substring(0, 80));
 
     // Clean up previous HLS instance
@@ -85,6 +94,9 @@ async function _loadStream(track, autoPlay = true, resumeAt = null) {
       hls.destroy();
       hls = null;
     }
+    // Clear stale audio source so hasAudioSource() reflects reality
+    audio.removeAttribute('src');
+    audio.load();
 
     if (stream.protocol === 'hls' && window.Hls && Hls.isSupported()) {
       // HLS stream — use hls.js
@@ -115,6 +127,9 @@ async function _loadStream(track, autoPlay = true, resumeAt = null) {
       hls.attachMedia(audio);
 
       hls.on(Hls.Events.MANIFEST_PARSED, () => {
+        // Stale load guard: bail if a newer load started while manifest was parsing
+        if (loadId !== currentLoadId) return;
+
         console.log('[SCQ player] HLS manifest parsed');
         if (onLoadingCallback) onLoadingCallback(false);
 
@@ -179,7 +194,7 @@ async function _recoverStream() {
   // Show the same loading UI as initial track load
   if (onLoadingCallback) onLoadingCallback(true);
 
-  await _loadStream(currentTrack, true, resumeAt);
+  await _loadStream(currentTrack, true, resumeAt, currentLoadId);
 }
 
 export function play() {
