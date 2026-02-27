@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Sift: SoundCloud, Tuned to You",
   "version": "0.2.1",
-  "description": "Set your music free. Jump into a world where old SoundCloud favorites surprise you alongside new discoveries from your feed. Customizable, effortless, liberating.",
+  "description": "Shuffle your SoundCloud like history with new releases from your feed. Duration filter, spread across years, and built-in player.",
   "permissions": [
     "cookies",
     "storage"
