@@ -11,7 +11,7 @@ body { background: #0d0d0d; color: #e0e0e0; font-family: 'Segoe UI', system-ui, 
 .controls-bar {
   background: #1a1a1a;
   border-bottom: 1px solid #2a2a2a;
-  padding: 12px 20px;
+  padding: 12px 52px 12px 20px;
   display: flex;
   align-items: center;
   gap: 12px 24px;
@@ -635,7 +635,9 @@ body { background: #0d0d0d; color: #e0e0e0; font-family: 'Segoe UI', system-ui, 
 
 /* ── Hamburger Menu ── */
 .menu-wrap {
-  position: relative;
+  position: absolute;
+  top: 10px;
+  right: 16px;
 }
 .hamburger-btn {
   background: none;
@@ -701,10 +703,27 @@ body { background: #0d0d0d; color: #e0e0e0; font-family: 'Segoe UI', system-ui, 
 }
 .menu-version {
   display: block;
-  padding: 6px 14px;
+  padding: 6px 14px 2px;
   font-size: 11px;
   color: #888;
   letter-spacing: 0.3px;
+}
+.menu-credit {
+  display: block;
+  padding: 2px 14px 6px;
+  font-size: 11px;
+  color: #888;
+}
+.menu-credit a {
+  color: #888;
+  text-decoration: none;
+  transition: color 0.15s;
+}
+.menu-credit a:hover {
+  color: #ff6600;
+}
+.menu-credit .credit-heart {
+  color: #c44;
 }
 
 /* ── Likes Data Modal ── */
@@ -971,4 +990,9 @@ body { background: #0d0d0d; color: #e0e0e0; font-family: 'Segoe UI', system-ui, 
 /* Progress bar (slider) */
 .progress-bar:focus-visible {
   outline-offset: 4px;
+}
+
+/* ── Responsive: hide inline credit when controls bar wraps ── */
+@media (max-width: 1400px) {
+  .credit-line { display: none; }
 }
