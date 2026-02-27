@@ -47,27 +47,42 @@ async function checkAuth() {
       const playerBar = document.querySelector('.player-bar');
       if (isAuthed) {
         if (loggedOutOverlay) loggedOutOverlay.style.display = 'none';
-        if (queueArea) queueArea.classList.remove('dimmed');
         if (likesDataBtn) likesDataBtn.style.display = '';
         if (controlsBar) controlsBar.style.display = '';
         if (playerBar) playerBar.style.display = '';
+        updateQueueScroll();
         checkSCTab();
       } else {
         if (loggedOutOverlay) loggedOutOverlay.style.display = 'flex';
-        if (queueArea) queueArea.classList.remove('dimmed');
         if (likesDataBtn) likesDataBtn.style.display = 'none';
         if (controlsBar) controlsBar.style.display = 'none';
-        if (playerBar) playerBar.style.display = 'none';
         // Hide no-SC-tab overlay — logged-out takes priority
         const noSCOverlay = document.getElementById('no-sc-tab-overlay');
         if (noSCOverlay) noSCOverlay.style.display = 'none';
-        // Reset player bar — no track info when logged out
-        updatePlayerBar(null);
-        updateProgress(0, 0);
+        // Keep player bar visible if audio is playing so user can pause/stop
+        const audioActive = hasAudioSource();
+        if (playerBar) playerBar.style.display = audioActive ? '' : 'none';
+        if (!audioActive) {
+          updatePlayerBar(null);
+          updateProgress(0, 0);
+        }
+        updateQueueScroll();
       }
       resolve(auth);
     });
   });
+}
+
+// ── Queue Scroll Lock ────────────────────────────────────────
+
+function updateQueueScroll() {
+  const queueArea = document.querySelector('.queue-area');
+  const loggedOut = document.getElementById('logged-out-overlay');
+  const noSCTab = document.getElementById('no-sc-tab-overlay');
+  const anyOverlay =
+    (loggedOut?.style.display !== 'none') ||
+    (noSCTab?.style.display !== 'none');
+  if (queueArea) queueArea.style.overflowY = anyOverlay ? 'hidden' : '';
 }
 
 // ── SC Tab Detection ─────────────────────────────────────────
@@ -83,6 +98,7 @@ function showOrHideNoSCTabOverlay(hasSCTab) {
   } else {
     overlay.style.display = 'none';
   }
+  updateQueueScroll();
 }
 
 async function checkSCTab() {
