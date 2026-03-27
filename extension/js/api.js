@@ -158,6 +158,78 @@ export async function clearCache() {
   await chrome.storage.local.remove([CACHE_KEY_LIKES, CACHE_KEY_FEED, 'userId']);
 }
 
+// ── Like / Repost actions ────────────────────────────────────
+
+async function apiAction(method, url, oauthToken) {
+  const res = await fetch(url, {
+    method,
+    headers: {
+      Authorization: `OAuth ${oauthToken}`,
+      Accept: 'application/json',
+    },
+  });
+  if (res.status === 401) throw new Error('AUTH_EXPIRED');
+  if (!res.ok) {
+    const body = await res.text().catch(() => '');
+    console.error(`[Sift] API ${method} ${res.status}:`, url, body);
+    throw new Error(`API error: ${res.status}`);
+  }
+  return { ok: true };
+}
+
+export async function likeTrack(trackId) {
+  const { oauthToken, clientId } = await getAuth();
+  if (!oauthToken || !clientId) throw new Error('NOT_AUTHENTICATED');
+  const userId = await resolveUserId(oauthToken, clientId);
+  const url = `https://api-v2.soundcloud.com/users/${userId}/track_likes/${trackId}?client_id=${clientId}`;
+  return apiAction('PUT', url, oauthToken);
+}
+
+export async function unlikeTrack(trackId) {
+  const { oauthToken, clientId } = await getAuth();
+  if (!oauthToken || !clientId) throw new Error('NOT_AUTHENTICATED');
+  const userId = await resolveUserId(oauthToken, clientId);
+  const url = `https://api-v2.soundcloud.com/users/${userId}/track_likes/${trackId}?client_id=${clientId}`;
+  return apiAction('DELETE', url, oauthToken);
+}
+
+export async function repostTrack(trackId) {
+  const { oauthToken, clientId } = await getAuth();
+  if (!oauthToken || !clientId) throw new Error('NOT_AUTHENTICATED');
+  const url = `https://api-v2.soundcloud.com/me/track_reposts/${trackId}?client_id=${clientId}`;
+  return apiAction('PUT', url, oauthToken);
+}
+
+export async function unrepostTrack(trackId) {
+  const { oauthToken, clientId } = await getAuth();
+  if (!oauthToken || !clientId) throw new Error('NOT_AUTHENTICATED');
+  const url = `https://api-v2.soundcloud.com/me/track_reposts/${trackId}?client_id=${clientId}`;
+  return apiAction('DELETE', url, oauthToken);
+}
+
+// ── Fetch repost state ──────────────────────────────────────
+
+export async function fetchRepostIds() {
+  const { oauthToken, clientId } = await getAuth();
+  if (!oauthToken || !clientId) return [];
+  let url = `https://api-v2.soundcloud.com/me/track_reposts/ids?limit=200&client_id=${clientId}`;
+  let allIds = [];
+  try {
+    while (url) {
+      const data = await fetchPage(url, oauthToken);
+      // Handle both { collection: [...] } and flat array responses
+      const ids = Array.isArray(data) ? data : (data.collection || []);
+      allIds = allIds.concat(ids);
+      url = Array.isArray(data) ? null : (data.next_href || null);
+    }
+    console.log(`[Sift] Fetched ${allIds.length} repost IDs, sample:`, allIds.slice(0, 5));
+    return allIds;
+  } catch (err) {
+    console.error('[Sift] Failed to fetch repost IDs:', err);
+    return allIds;
+  }
+}
+
 // ── Stream URL resolution ───────────────────────────────────
 
 /**

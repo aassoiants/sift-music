@@ -394,6 +394,107 @@ body { background: #0d0d0d; color: #e0e0e0; font-family: 'Segoe UI', system-ui, 
 }
 .track-action-btn:hover { color: #fff; }
 
+/* ── Like / Repost Ghost Icons ── */
+.track-social {
+  display: flex;
+  gap: 2px;
+  align-items: center;
+  flex-shrink: 0;
+  margin-right: 4px;
+}
+.track-social-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px 5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: all 0.15s ease;
+}
+.track-social-btn svg { transition: all 0.15s ease; }
+.track-social-btn .icon-stroke { stroke: #444; fill: none; transition: all 0.15s ease; }
+.track-social-btn .icon-fill { fill: #444; transition: all 0.15s ease; }
+.track-social-btn:hover .icon-stroke { stroke: #888; }
+.track-social-btn:hover .icon-fill { fill: #888; }
+
+/* Liked — heart fills orange */
+.track-social-btn.liked .icon-stroke { stroke: #ff6600; fill: #ff6600; }
+.track-social-btn.liked:hover .icon-stroke { stroke: #ff8533; fill: #ff8533; }
+
+/* Reposted — arrows fill blue */
+.track-social-btn.reposted .icon-fill { fill: #00aaff; }
+.track-social-btn.reposted:hover .icon-fill { fill: #33bbff; }
+
+/* Error flash */
+.track-social-btn.error .icon-stroke { stroke: #cc3333; fill: none; }
+.track-social-btn.error .icon-fill { fill: #cc3333; }
+
+/* ── Unlike Confirmation Dialog ── */
+.confirm-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(2px);
+}
+.confirm-card {
+  background: #111;
+  border: 1px solid #222;
+  border-radius: 8px;
+  padding: 24px 28px;
+  max-width: 360px;
+  text-align: center;
+}
+.confirm-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #e0e0e0;
+  margin-bottom: 8px;
+}
+.confirm-text {
+  font-size: 12px;
+  color: #888;
+  line-height: 1.6;
+  margin-bottom: 20px;
+}
+.confirm-track-name {
+  color: #ccc;
+  font-weight: 500;
+}
+.confirm-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+}
+.confirm-btn {
+  padding: 8px 18px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border: none;
+  transition: background 0.15s, border-color 0.15s;
+}
+.confirm-btn-danger {
+  background: #c65000;
+  color: #fff;
+}
+.confirm-btn-danger:hover { background: #b34700; }
+.confirm-btn-cancel {
+  background: transparent;
+  border: 1px solid #444;
+  color: #ccc;
+}
+.confirm-btn-cancel:hover { border-color: #666; color: #fff; }
+
 /* ── Bottom: Player Bar ── */
 .player-bar {
   background: #111;

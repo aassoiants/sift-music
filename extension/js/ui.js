@@ -32,7 +32,7 @@ function formatTime(ms) {
   return `${min}:${sec.toString().padStart(2, '0')}`;
 }
 
-export function renderQueue(queue, currentIndex, { onTrackClick, onRemove, onSkip }) {
+export function renderQueue(queue, currentIndex, { onTrackClick, onRemove, onSkip, onLike, onRepost }) {
   const container = document.querySelector('.queue-area');
   const header = container.querySelector('.queue-header');
 
@@ -63,7 +63,7 @@ export function renderQueue(queue, currentIndex, { onTrackClick, onRemove, onSki
   queue.forEach((track, i) => {
     const row = createTrackRow(track, i, i === currentIndex);
     row.addEventListener('click', (e) => {
-      if (e.target.closest('.track-action-btn')) return;
+      if (e.target.closest('.track-action-btn') || e.target.closest('.track-social-btn')) return;
       onTrackClick(i);
     });
     row.addEventListener('keydown', (e) => {
@@ -74,6 +74,8 @@ export function renderQueue(queue, currentIndex, { onTrackClick, onRemove, onSki
     });
     row.querySelector('[data-action="remove"]')?.addEventListener('click', () => onRemove(i));
     row.querySelector('[data-action="skip"]')?.addEventListener('click', () => onSkip(i));
+    row.querySelector('[data-action="like"]')?.addEventListener('click', () => onLike(i));
+    row.querySelector('[data-action="repost"]')?.addEventListener('click', () => onRepost(i));
     container.appendChild(row);
   });
 }
@@ -94,11 +96,24 @@ function createTrackRow(track, index, isPlaying) {
     ? `<span class="track-genre">${escapeHtml(genre)}</span>`
     : `<span class="track-genre empty">\u2014</span>`;
 
+  const likedClass = track.liked ? ' liked' : '';
+  const repostedClass = track.reposted ? ' reposted' : '';
+  const likeTitle = track.liked ? 'Liked' : 'Like';
+  const repostTitle = track.reposted ? 'Reposted' : 'Repost';
+
   row.innerHTML = `
     <span class="track-num">${isPlaying ? '<span class="track-playing-icon">&#9654;</span>' : index + 1}</span>
     <div class="track-info">
       <div class="track-title">${escapeHtml(track.title)}</div>
       <span class="track-artist">${escapeHtml(track.artist)}</span>
+    </div>
+    <div class="track-social">
+      <button class="track-social-btn${likedClass}" data-action="like" title="${likeTitle}">
+        <svg viewBox="0 0 16 16" width="14" height="14"><path class="icon-stroke" d="M8 14s-5.5-3.5-5.5-7A3 3 0 0 1 8 5a3 3 0 0 1 5.5 2c0 3.5-5.5 7-5.5 7z" stroke-width="1.5" stroke-linejoin="round" fill="none"/></svg>
+      </button>
+      <button class="track-social-btn${repostedClass}" data-action="repost" title="${repostTitle}">
+        <svg viewBox="0 0 16 16" width="14" height="14"><path class="icon-fill" d="M2 10V5h8V3l4 3.5L10 10V8H4v2H2z"/></svg>
+      </button>
     </div>
     <div class="track-meta">
       ${genreHtml}

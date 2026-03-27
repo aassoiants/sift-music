@@ -1,6 +1,6 @@
 // Main app — state management and event wiring (Chrome Extension version)
 
-import { fetchLikes, fetchFeed, clearCache } from './api.js';
+import { fetchLikes, fetchFeed, clearCache, likeTrack, unlikeTrack, repostTrack, unrepostTrack, fetchRepostIds } from './api.js';
 import { generateQueue, shuffleQueue } from './queue.js';
 import { renderQueue, updatePlayerBar, updateProgress, scrollToPlaying, escapeHtml } from './ui.js';
 import { initPlayer, loadTrack, toggle, seekTo, hasAudioSource } from './player.js';
@@ -144,6 +144,8 @@ function render() {
     onTrackClick: playAtIndex,
     onRemove: removeTrack,
     onSkip: skipToAfter,
+    onLike: handleLike,
+    onRepost: handleRepost,
   });
 }
 
@@ -205,6 +207,128 @@ function skipToAfter(index) {
   if (index + 1 < state.queue.length) {
     playAtIndex(index + 1);
   }
+}
+
+// ── Like / Repost ───────────────────────────────────────────
+
+function showConfirmUnlike(track) {
+  return new Promise((resolve) => {
+    const overlay = document.createElement('div');
+    overlay.className = 'confirm-overlay';
+    overlay.innerHTML = `
+      <div class="confirm-card">
+        <div class="confirm-title">Unlike this track?</div>
+        <div class="confirm-text">
+          <span class="confirm-track-name">${escapeHtml(track.title)}</span> by ${escapeHtml(track.artist)}<br>
+          will be unliked on SoundCloud and removed from your queue.
+        </div>
+        <div class="confirm-actions">
+          <button class="confirm-btn confirm-btn-cancel" data-choice="cancel">Cancel</button>
+          <button class="confirm-btn confirm-btn-danger" data-choice="confirm">Unlike &amp; Remove</button>
+        </div>
+      </div>
+    `;
+
+    function cleanup(result) {
+      overlay.remove();
+      document.removeEventListener('keydown', onKey);
+      resolve(result);
+    }
+
+    function onKey(e) {
+      if (e.key === 'Escape') cleanup(false);
+    }
+
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) cleanup(false);
+      const choice = e.target.closest('[data-choice]')?.dataset.choice;
+      if (choice === 'confirm') cleanup(true);
+      if (choice === 'cancel') cleanup(false);
+    });
+
+    document.addEventListener('keydown', onKey);
+    document.body.appendChild(overlay);
+  });
+}
+
+function flashError(index, action) {
+  const row = document.querySelector(`.track-row[data-index="${index}"]`);
+  if (!row) return;
+  const btn = row.querySelector(`[data-action="${action}"]`);
+  if (!btn) return;
+  btn.classList.add('error');
+  setTimeout(() => btn.classList.remove('error'), 1000);
+}
+
+async function handleLike(index) {
+  const track = state.queue[index];
+  if (!track) return;
+  if (track.liked) {
+    // Always confirm before unliking
+    const confirmed = await showConfirmUnlike(track);
+    if (!confirmed) return;
+    try {
+      await unlikeTrack(track.track_id);
+    } catch (err) {
+      if (err.message === 'AUTH_EXPIRED' || err.message === 'NOT_AUTHENTICATED') { checkAuth(); return; }
+      console.error('[Sift] Unlike failed:', err);
+      flashError(index, 'like');
+      return;
+    }
+    if (track.originalSource === 'likes') {
+      // Originally from LIKES → remove from queue entirely
+      removeTrack(index);
+      return;
+    }
+    // Originally from FEED → toggle off, revert badge
+    track.liked = false;
+    track.source = 'feed';
+  } else {
+    // Liking
+    try {
+      await likeTrack(track.track_id);
+    } catch (err) {
+      if (err.message === 'AUTH_EXPIRED' || err.message === 'NOT_AUTHENTICATED') { checkAuth(); return; }
+      console.error('[Sift] Like failed:', err);
+      flashError(index, 'like');
+      return;
+    }
+    track.liked = true;
+    if (track.source === 'feed') {
+      track.source = 'likes';
+    }
+  }
+  render();
+  saveState();
+}
+
+async function handleRepost(index) {
+  const track = state.queue[index];
+  if (!track) return;
+
+  if (track.reposted) {
+    try {
+      await unrepostTrack(track.track_id);
+    } catch (err) {
+      if (err.message === 'AUTH_EXPIRED' || err.message === 'NOT_AUTHENTICATED') { checkAuth(); return; }
+      console.error('[Sift] Unrepost failed:', err);
+      flashError(index, 'repost');
+      return;
+    }
+    track.reposted = false;
+  } else {
+    try {
+      await repostTrack(track.track_id);
+    } catch (err) {
+      if (err.message === 'AUTH_EXPIRED' || err.message === 'NOT_AUTHENTICATED') { checkAuth(); return; }
+      console.error('[Sift] Repost failed:', err);
+      flashError(index, 'repost');
+      return;
+    }
+    track.reposted = true;
+  }
+  render();
+  saveState();
 }
 
 // ── Loading Overlay ─────────────────────────────────────────
@@ -290,6 +414,15 @@ async function handleGenerate(forceRefresh = false) {
 
     const settings = getSettings();
     state.queue = generateQueue(state.allLikes, state.allFeed, settings);
+
+    // Fetch repost state and set initial liked/reposted
+    const repostIds = await fetchRepostIds();
+    const repostSet = new Set(repostIds);
+    for (const track of state.queue) {
+      track.liked = track.source === 'likes';
+      track.reposted = repostSet.has(track.track_id);
+      track.originalSource = track.originalSource || track.source;
+    }
 
     if (playingTrack) {
       const newIdx = state.queue.findIndex((t) => t.permalink_url === playingTrack.permalink_url);
@@ -727,6 +860,20 @@ async function init() {
   if (savedValid) {
     state.queue = saved.queue;
     state.currentIndex = saved.currentIndex ?? -1;
+
+    // Backfill liked/reposted/originalSource for queues saved before these fields existed
+    const needsBackfill = state.queue.some((t) => t.liked === undefined);
+    if (needsBackfill) {
+      const repostIds = isAuthed ? await fetchRepostIds() : [];
+      const repostSet = new Set(repostIds);
+      for (const track of state.queue) {
+        if (track.liked === undefined) track.liked = track.source === 'likes';
+        if (track.reposted === undefined) track.reposted = repostSet.has(track.track_id);
+        if (!track.originalSource) track.originalSource = track.source;
+      }
+      // Persist the backfilled fields
+      saveState();
+    }
 
     if (saved.settings) {
       document.getElementById('feed-ratio').textContent = saved.settings.feedRatio;
