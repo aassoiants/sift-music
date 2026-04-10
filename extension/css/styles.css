@@ -1508,9 +1508,6 @@ body { background: #0d0d0d; color: #e0e0e0; font-family: 'Segoe UI', system-ui, 
 }
 .moments-table thead th:hover { color: #bbb; }
 .moments-table thead th.sorted { color: #ff6600; }
-.moments-table thead th {
-  position: relative;
-}
 .th-resize {
   position: absolute;
   right: 0;
