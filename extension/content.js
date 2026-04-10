@@ -12,7 +12,7 @@
         const parsed = new URL(url);
         const clientId = parsed.searchParams.get('client_id');
         if (clientId) {
-          window.postMessage({ type: 'SCQ_CLIENT_ID', clientId }, '*');
+          window.postMessage({ type: 'SCQ_CLIENT_ID', clientId }, location.origin);
         }
       }
     } catch (e) { /* ignore parse errors */ }
@@ -27,7 +27,7 @@
         const parsed = new URL(url, location.origin);
         const clientId = parsed.searchParams.get('client_id');
         if (clientId) {
-          window.postMessage({ type: 'SCQ_CLIENT_ID', clientId }, '*');
+          window.postMessage({ type: 'SCQ_CLIENT_ID', clientId }, location.origin);
         }
       }
     } catch (e) { /* ignore */ }

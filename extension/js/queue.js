@@ -1,10 +1,10 @@
 // Queue generation algorithm
 
-export function filterByDuration(tracks, minMinutes) {
+function filterByDuration(tracks, minMinutes) {
   return tracks.filter(t => t.duration_min >= minMinutes);
 }
 
-export function deduplicateByUrl(tracks) {
+function deduplicateByUrl(tracks) {
   const seen = new Set();
   return tracks.filter(t => {
     if (seen.has(t.permalink_url)) return false;
@@ -13,7 +13,7 @@ export function deduplicateByUrl(tracks) {
   });
 }
 
-export function deduplicateFeed(feedTracks, likeTracks) {
+function deduplicateFeed(feedTracks, likeTracks) {
   const likeUrls = new Set(likeTracks.map(t => t.permalink_url));
   return feedTracks.filter(t => !likeUrls.has(t.permalink_url));
 }
@@ -26,7 +26,7 @@ function shuffleArray(arr) {
   return arr;
 }
 
-export function selectLikesSpread(filteredLikes, count) {
+function selectLikesSpread(filteredLikes, count) {
   // Group by upload year
   const byYear = {};
   filteredLikes.forEach(t => {
@@ -53,7 +53,7 @@ export function selectLikesSpread(filteredLikes, count) {
   return selected;
 }
 
-export function interleave(feedTracks, likesTracks, feedRatio, likesRatio) {
+function interleave(feedTracks, likesTracks, feedRatio, likesRatio) {
   const queue = [];
   let fi = 0, li = 0;
 
@@ -85,7 +85,7 @@ export function generateQueue(allLikes, allFeed, { minDuration, feedRatio, likes
   // Shuffle feed too
   shuffleArray(longFeed);
 
-  // Interleave — ratio controls the pattern, not total count
+  // Interleave - ratio controls the pattern, not total count
   return interleave(longFeed, selectedLikes, feedRatio, likesRatio);
 }
 

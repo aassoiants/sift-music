@@ -26,6 +26,13 @@ async function fetchPage(url, oauthToken) {
   return res.json();
 }
 
+const SC_API_ORIGIN = 'https://api-v2.soundcloud.com';
+
+function isSafeApiUrl(url) {
+  try { return new URL(url).origin === SC_API_ORIGIN; }
+  catch { return false; }
+}
+
 async function resolveUserId(oauthToken, clientId) {
   const cached = await chrome.storage.local.get('userId');
   if (cached.userId) return cached.userId;
@@ -51,7 +58,7 @@ async function fetchAllLikes(oauthToken, clientId, onProgress) {
     const result = await fetchPage(url, oauthToken);
     const items = result.collection || [];
     allItems = allItems.concat(items);
-    url = result.next_href || null;
+    url = result.next_href && isSafeApiUrl(result.next_href) ? result.next_href : null;
     page++;
   }
 
@@ -89,7 +96,7 @@ async function fetchAllFeed(oauthToken, clientId, onProgress) {
     const result = await fetchPage(url, oauthToken);
     const items = result.collection || [];
     allItems = allItems.concat(items);
-    if (allItems.length >= FEED_MAX_ITEMS || !result.next_href) break;
+    if (allItems.length >= FEED_MAX_ITEMS || !result.next_href || !isSafeApiUrl(result.next_href)) break;
     url = result.next_href;
     page++;
   }
@@ -170,8 +177,7 @@ async function apiAction(method, url, oauthToken) {
   });
   if (res.status === 401) throw new Error('AUTH_EXPIRED');
   if (!res.ok) {
-    const body = await res.text().catch(() => '');
-    console.error(`[Sift] API ${method} ${res.status}:`, url, body);
+    console.error(`[Sift] API ${method} ${res.status}`);
     throw new Error(`API error: ${res.status}`);
   }
   return { ok: true };
@@ -222,7 +228,7 @@ export async function fetchRepostIds() {
       allIds = allIds.concat(ids);
       url = Array.isArray(data) ? null : (data.next_href || null);
     }
-    console.log(`[Sift] Fetched ${allIds.length} repost IDs, sample:`, allIds.slice(0, 5));
+    console.log(`[Sift] Fetched ${allIds.length} repost IDs`);
     return allIds;
   } catch (err) {
     console.error('[Sift] Failed to fetch repost IDs:', err);
@@ -240,7 +246,7 @@ export async function fetchRepostIds() {
  *     format: { protocol: "hls", mime_type: "audio/mpeg" },
  *     quality: "sq" }
  *
- * The `url` field is NOT the actual stream — it's an API endpoint
+ * The `url` field is NOT the actual stream - it's an API endpoint
  * that returns { url: "https://cf-hls-media.sndcdn.com/..." }
  * when called with ?client_id=...&track_authorization=...
  */
@@ -256,10 +262,10 @@ export async function getStreamUrl(track) {
   const transcodings = track.media_transcodings;
 
   // Priority order:
-  // 1. HLS with audio/mpeg (MP3 HLS — widest compatibility)
-  // 2. HLS with audio/aac or audio/mp4 (AAC HLS — SC's new format)
+  // 1. HLS with audio/mpeg (MP3 HLS - widest compatibility)
+  // 2. HLS with audio/aac or audio/mp4 (AAC HLS - SC's new format)
   // 3. Any HLS
-  // 4. Progressive (direct MP3 URL — no hls.js needed)
+  // 4. Progressive (direct MP3 URL - no hls.js needed)
   const hlsMp3 = transcodings.find(
     (tc) => tc.format?.protocol === 'hls' && tc.format?.mime_type === 'audio/mpeg'
   );
@@ -272,6 +278,11 @@ export async function getStreamUrl(track) {
   const chosen = hlsMp3 || hlsAac || anyHls || progressive;
   if (!chosen) {
     throw new Error('No compatible transcoding found');
+  }
+
+  // Validate transcoding URL before sending auth headers
+  if (!isSafeApiUrl(chosen.url)) {
+    throw new Error('Transcoding URL outside expected API origin');
   }
 
   // Fetch the actual stream URL from the transcoding endpoint

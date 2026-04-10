@@ -1,15 +1,30 @@
-# Sift v0.2.1 — Release Notes
+# Sift v0.4.0 - Release Notes
 
 **Sift: SoundCloud, Tuned to You**
 
 ---
 
-## Bug fixes
+## New features
 
-- **Player bar stays visible on logout**: If you log out of SoundCloud while music is playing, the player bar now stays so you can pause or stop playback. Previously it disappeared along with the controls.
-- **Queue no longer scrollable behind overlays**: When the logged-out or no-SoundCloud-tab overlay is showing, the queue behind it no longer scrolls.
-- **Hamburger menu stays top-right**: The menu icon is now pinned to the top-right corner of the controls bar instead of wrapping to a second row on narrow windows.
-- **Credit line moved to hamburger menu**: The "Open source & built with love" text is now in the hamburger dropdown at smaller widths, keeping the controls bar to a single row.
+- **Moments**: Press **B** to bookmark a moment while listening. Saves the exact timestamp so you can find it later.
+- **Moments tab**: All your moments grouped by set, with mini-timelines, search, and note editing. Click any moment to jump to that point. Resizable columns.
+- **Progress bar ticks**: Blue marks show your moments on the progress bar. Hover a tick to see the note, click the note to edit it inline, or delete the moment right there.
+- **Moments toggle**: The moments button on the player bar toggles tick visibility on/off.
+- **Resume playback**: Position saved every 5s and on tab close, restored when you reopen Sift.
+- **SoundCloud link in player bar**: SC icon next to the track title opens it on soundcloud.com. Also on each track row in the queue.
+- **Repost controls**: Repost and un-repost tracks right from the queue.
+- **Likes data modal**: Now works after a shuffle too (falls back to queue data if full likes aren't cached).
+
+## Improvements
+
+- Moments table has Set, Account, At, and Note columns with draggable resize handles. Widths persist across edits.
+- Clicking a note cell in the moments table opens inline editing without jumping to that position.
+- Tab counts on Queue and Moments tabs.
+- Pagination URLs validated against expected API origin before fetching.
+- `postMessage` target origin tightened from `'*'` to `location.origin`.
+- Removed unused exports, internalized private helper functions.
+- Version header added to bundled hls.js.
+- Stream URLs no longer logged to console.
 
 ## Install
 

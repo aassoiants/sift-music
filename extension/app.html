@@ -8,7 +8,30 @@
 </head>
 <body>
 
-<!-- Controls Bar -->
+<!-- Primary Header (Tabs + Credit + Menu) -->
+<div class="primary-header">
+  <div class="tab-bar">
+    <button class="tab-btn active" data-tab="queue">Queue <span class="count" id="tab-queue-count"></span></button>
+    <button class="tab-btn" data-tab="moments">Moments <span class="count" id="tab-moments-count"></span></button>
+  </div>
+  <div class="header-spacer"></div>
+  <span class="credit-line">Open source &amp; built with <span class="credit-heart" aria-hidden="true">&hearts;</span> by <a href="https://artassoiants.com/" target="_blank" rel="noopener">Art Assoiants</a></span>
+  <div class="menu-wrap">
+    <button class="hamburger-btn" id="hamburger-btn" aria-label="Menu" aria-expanded="false" aria-haspopup="true">
+      <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><rect x="2" y="3" width="12" height="1.5" rx="0.75" fill="currentColor"/><rect x="2" y="7.25" width="12" height="1.5" rx="0.75" fill="currentColor"/><rect x="2" y="11.5" width="12" height="1.5" rx="0.75" fill="currentColor"/></svg>
+    </button>
+    <div class="menu-dropdown" id="menu-dropdown" role="menu">
+      <a class="menu-item" href="https://forms.gle/imyjC8MrewbizCMM9" target="_blank" rel="noopener" role="menuitem">Provide feedback</a>
+      <button class="menu-item" id="menu-likes-data" role="menuitem">View likes data</button>
+      <a class="menu-item" href="https://github.com/aassoiants/sift-music" target="_blank" rel="noopener" role="menuitem">View source code</a>
+      <div class="menu-divider" role="separator"></div>
+      <span class="menu-version">v0.4.0</span>
+      <span class="menu-credit">Open source &amp; built with <span class="credit-heart" aria-hidden="true">&hearts;</span> by <a href="https://artassoiants.com/" target="_blank" rel="noopener">Art Assoiants</a></span>
+    </div>
+  </div>
+</div>
+
+<!-- Controls Bar (Queue-specific) -->
 <div class="controls-bar" role="toolbar" aria-label="Queue settings">
   <div class="control-group">
     <div class="stepper" data-target="feed-ratio">
@@ -36,23 +59,6 @@
   <div class="divider" aria-hidden="true"></div>
   <button class="btn" id="btn-generate" title="Shift+Click to refresh data from SoundCloud">Generate Queue</button>
   <button class="btn btn-ghost" id="btn-shuffle">Shuffle</button>
-  <div class="controls-spacer"></div>
-  <div class="controls-right">
-    <span class="credit-line">Open source &amp; built with <span class="credit-heart" aria-hidden="true">&hearts;</span> by <a href="https://artassoiants.com/" target="_blank" rel="noopener">Art Assoiants</a></span>
-    <div class="menu-wrap">
-      <button class="hamburger-btn" id="hamburger-btn" aria-label="Menu" aria-expanded="false" aria-haspopup="true">
-        <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><rect x="2" y="3" width="12" height="1.5" rx="0.75" fill="currentColor"/><rect x="2" y="7.25" width="12" height="1.5" rx="0.75" fill="currentColor"/><rect x="2" y="11.5" width="12" height="1.5" rx="0.75" fill="currentColor"/></svg>
-      </button>
-      <div class="menu-dropdown" id="menu-dropdown" role="menu">
-        <a class="menu-item" href="https://forms.gle/imyjC8MrewbizCMM9" target="_blank" rel="noopener" role="menuitem">Provide feedback</a>
-        <button class="menu-item" id="menu-likes-data" role="menuitem">View likes data</button>
-        <a class="menu-item" href="https://github.com/aassoiants/sift-music" target="_blank" rel="noopener" role="menuitem">View source code</a>
-        <div class="menu-divider" role="separator"></div>
-        <span class="menu-version">v0.2.1</span>
-        <span class="menu-credit">Open source &amp; built with <span class="credit-heart" aria-hidden="true">&hearts;</span> by <a href="https://artassoiants.com/" target="_blank" rel="noopener">Art Assoiants</a></span>
-      </div>
-    </div>
-  </div>
 </div>
 
 <!-- Loading Overlay -->
@@ -95,13 +101,13 @@
         Open soundcloud.com
         <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><line x1="4" y1="12" x2="12" y2="4"/><polyline points="5,4 12,4 12,11"/></svg>
       </a>
-      <div class="lo-hint">Opens in a new tab — keep this one open</div>
+      <div class="lo-hint">Opens in a new tab - keep this one open</div>
       <div class="lo-footer">
         <a href="https://forms.gle/imyjC8MrewbizCMM9" target="_blank" rel="noopener">Feedback</a>
         <span class="lo-footer-dot" aria-hidden="true">·</span>
         <a href="https://github.com/aassoiants/sift-music" target="_blank" rel="noopener">Source</a>
         <span class="lo-footer-dot" aria-hidden="true">·</span>
-        <span>v0.2.1</span>
+        <span>v0.4.0</span>
       </div>
     </div>
   </div>
@@ -127,15 +133,31 @@
         Open soundcloud.com
         <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><line x1="4" y1="12" x2="12" y2="4"/><polyline points="5,4 12,4 12,11"/></svg>
       </a>
-      <div class="lo-hint">Opens in a new tab — keep this one open</div>
+      <div class="lo-hint">Opens in a new tab - keep this one open</div>
       <div class="lo-footer">
         <a href="https://forms.gle/imyjC8MrewbizCMM9" target="_blank" rel="noopener">Feedback</a>
         <span class="lo-footer-dot" aria-hidden="true">·</span>
         <a href="https://github.com/aassoiants/sift-music" target="_blank" rel="noopener">Source</a>
         <span class="lo-footer-dot" aria-hidden="true">·</span>
-        <span>v0.2.1</span>
+        <span>v0.4.0</span>
       </div>
     </div>
+  </div>
+</div>
+
+<!-- Moments View (hidden by default) -->
+<div class="moments-area" id="moments-area" style="display:none">
+  <div class="filter-bar">
+    <input class="filter-search" id="moments-search" type="text" placeholder="Search moments..." aria-label="Search moments">
+    <button class="group-toggle active" id="group-toggle">Group by set</button>
+    <span class="filter-count" id="filter-count"></span>
+  </div>
+  <div class="moments-table-wrap" id="moments-table-wrap">
+    <!-- Table rendered by JS -->
+  </div>
+  <div class="table-footer">
+    <span>Click row to jump &middot; click note to edit</span>
+    <span><kbd>B</kbd> mark moment &middot; <kbd>/</kbd> search</span>
   </div>
 </div>
 
@@ -146,6 +168,9 @@
     <button class="player-btn play" id="btn-play" aria-label="Play"><svg class="btn-icon btn-icon-play" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><polygon points="5,2 5,14 14,8" fill="currentColor"/></svg><svg class="btn-icon btn-icon-pause" viewBox="0 0 16 16" width="16" height="16" style="display:none" aria-hidden="true"><rect x="4" y="3" width="3" height="10" rx="0.5" fill="currentColor"/><rect x="9" y="3" width="3" height="10" rx="0.5" fill="currentColor"/></svg><span class="btn-spinner" aria-hidden="true"><span class="btn-spinner-ring"></span></span></button>
     <button class="player-btn" id="btn-next" aria-label="Next track">&#9197;</button>
   </div>
+  <a class="player-sc-link" id="player-sc-link" href="#" target="_blank" rel="noopener" title="Open on SoundCloud" aria-label="Open on SoundCloud" style="display:none">
+    <svg viewBox="0 0 16 16" width="14" height="14"><path d="M1 10V7a5 5 0 0 1 9.5-1.5A3 3 0 0 1 15 8.5V10H1z" fill="currentColor"/></svg>
+  </a>
   <div class="player-track-info">
     <div class="player-track-title">No track selected</div>
     <div class="player-track-artist"></div>
@@ -158,7 +183,11 @@
     </div>
     <span class="progress-time progress-total">0:00</span>
   </div>
+  <button class="moments-toggle" id="moments-toggle" aria-label="Show moments"><span class="dot"></span> <span id="moments-count">0</span> moments</button>
 </div>
+
+<!-- Bookmark Toast -->
+<div class="toast-container" id="toast-container"></div>
 
 <!-- Likes Data Modal -->
 <div class="likes-modal-overlay" id="likes-modal" style="display:none" role="dialog" aria-modal="true" aria-label="Your likes data">

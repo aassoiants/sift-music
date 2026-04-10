@@ -1,4 +1,4 @@
-# Privacy Policy — Sift: SoundCloud, Tuned to You
+# Privacy Policy - Sift: SoundCloud, Tuned to You
 
 **Last updated: February 24, 2026**
 

@@ -1,9 +1,10 @@
-// Main app — state management and event wiring (Chrome Extension version)
+// Main app - state management and event wiring (Chrome Extension version)
 
 import { fetchLikes, fetchFeed, clearCache, likeTrack, unlikeTrack, repostTrack, unrepostTrack, fetchRepostIds } from './api.js';
 import { generateQueue, shuffleQueue } from './queue.js';
-import { renderQueue, updatePlayerBar, updateProgress, scrollToPlaying, escapeHtml } from './ui.js';
-import { initPlayer, loadTrack, toggle, seekTo, hasAudioSource } from './player.js';
+import { renderQueue, updatePlayerBar, updateProgress, scrollToPlaying, escapeHtml, renderMomentsTable, updateTabCounts } from './ui.js';
+import { initPlayer, loadTrack, toggle, seekTo, seekToTime, hasAudioSource } from './player.js';
+import { loadMoments, saveMoment, getMomentsForTrack, getAllMoments, updateMomentNote, deleteMoment } from './moments.js';
 
 const STORAGE_KEY = 'scq-state';
 
@@ -15,6 +16,12 @@ const state = {
   isPlaying: false,
 };
 
+// ── Playback position (for bookmark capture + resume) ─────
+let currentMs = 0;
+let totalMs = 0;
+let momentsTicksVisible = true;
+let positionSaveTimer = null;
+
 // ── Persistence (chrome.storage.local) ─────────────────────
 
 function saveState() {
@@ -22,10 +29,19 @@ function saveState() {
     queue: state.queue,
     currentIndex: state.currentIndex,
     settings: getSettings(),
+    positionMs: currentMs,
   };
   chrome.storage.local.set({ [STORAGE_KEY]: data }).catch((err) => {
     console.error('[Sift] Failed to save state:', err);
   });
+}
+
+function savePositionDebounced() {
+  if (positionSaveTimer) return;
+  positionSaveTimer = setTimeout(() => {
+    positionSaveTimer = null;
+    saveState();
+  }, 5000);
 }
 
 async function loadSavedState() {
@@ -56,7 +72,7 @@ async function checkAuth() {
         if (loggedOutOverlay) loggedOutOverlay.style.display = 'flex';
         if (likesDataBtn) likesDataBtn.style.display = 'none';
         if (controlsBar) controlsBar.style.display = 'none';
-        // Hide no-SC-tab overlay — logged-out takes priority
+        // Hide no-SC-tab overlay - logged-out takes priority
         const noSCOverlay = document.getElementById('no-sc-tab-overlay');
         if (noSCOverlay) noSCOverlay.style.display = 'none';
         // Keep player bar visible if audio is playing so user can pause/stop
@@ -151,13 +167,15 @@ function render() {
 
 // ── Playback ────────────────────────────────────────────────
 
-function playAtIndex(index) {
+function playAtIndex(index, resumeMs = 0) {
   if (index < 0 || index >= state.queue.length) return;
   state.currentIndex = index;
+  state.resumePositionMs = 0;
   const track = state.queue[index];
-  loadTrack(track); // async — resolves stream URL then plays
+  loadTrack(track, true, resumeMs / 1000);
   updatePlayerBar(track);
   updateMediaSession(track);
+  renderMomentTicks(track.track_id);
   render();
   scrollToPlaying();
   saveState();
@@ -193,7 +211,7 @@ function removeTrack(index) {
     }
     if (state.currentIndex >= 0) {
       const track = state.queue[state.currentIndex];
-      loadTrack(track); // async — resolves stream URL then plays
+      loadTrack(track); // async - resolves stream URL then plays
       updatePlayerBar(track);
     } else {
       updatePlayerBar(null);
@@ -442,16 +460,17 @@ async function handleGenerate(forceRefresh = false) {
     render();
     scrollToPlaying();
     saveState();
+    refreshTabCounts();
     btn.textContent = 'Generate Queue';
   } catch (err) {
     if (err.message === 'NOT_AUTHENTICATED') {
       btn.textContent = 'Log into soundcloud.com first';
     } else if (err.message === 'AUTH_EXPIRED') {
-      btn.textContent = 'Session expired — visit soundcloud.com';
+      btn.textContent = 'Session expired - visit soundcloud.com';
       checkAuth();
     } else {
       console.error('Generate failed:', err);
-      btn.textContent = 'Error — try again';
+      btn.textContent = 'Error - try again';
     }
     setTimeout(() => { btn.textContent = 'Generate Queue'; }, 3000);
   } finally {
@@ -577,7 +596,7 @@ function renderLikesModal(stats) {
     </div>
   </div>`;
 
-  // Horizontal bar chart — tracks by year released
+  // Horizontal bar chart - tracks by year released
   html += `<div class="lm-sec-title">Tracks by year released</div>
   <div class="lm-hbar-chart">
     ${s.yearData.map((y) => `<div class="lm-hbar-row">
@@ -587,7 +606,7 @@ function renderLikesModal(stats) {
     </div>`).join('')}
   </div>`;
 
-  // Bottom — genres + artists
+  // Bottom - genres + artists
   html += `<div class="lm-bottom">
     <div>
       <div class="lm-sec-title">Top Genres</div>
@@ -649,12 +668,15 @@ function openLikesModal() {
   const overlay = document.getElementById('likes-modal');
   const body = document.getElementById('likes-modal-body');
 
-  if (state.allLikes.length === 0) {
+  const likesData = state.allLikes.length > 0
+    ? state.allLikes
+    : state.queue.filter((t) => t.source === 'likes');
+
+  if (likesData.length === 0) {
     body.innerHTML = '<div class="likes-modal-empty">Generate a queue first to load your likes data.</div>';
   } else {
-    const stats = computeLikesStats(state.allLikes);
+    const stats = computeLikesStats(likesData);
     renderLikesModal(stats);
-    // Store stats for copy button
     overlay._stats = stats;
   }
 
@@ -676,14 +698,246 @@ function copyLikesData() {
   });
 }
 
+// ── Tab Navigation ─────────────────────────────────────────
+
+let activeTab = 'queue';
+
+function switchTab(tab) {
+  activeTab = tab;
+  const queueArea = document.querySelector('.queue-area');
+  const controlsBar = document.querySelector('.controls-bar');
+  const momentsArea = document.getElementById('moments-area');
+
+  document.querySelectorAll('.tab-btn').forEach((btn) => {
+    btn.classList.toggle('active', btn.dataset.tab === tab);
+  });
+
+  if (tab === 'queue') {
+    queueArea.style.display = '';
+    controlsBar.style.display = '';
+    momentsArea.style.display = 'none';
+  } else {
+    queueArea.style.display = 'none';
+    controlsBar.style.display = 'none';
+    momentsArea.style.display = '';
+    refreshMomentsView();
+  }
+}
+
+function refreshMomentsView() {
+  const moments = getAllMoments();
+  const track = state.currentIndex >= 0 ? state.queue[state.currentIndex] : null;
+  const searchInput = document.getElementById('moments-search');
+  renderMomentsTable(moments, {
+    onRowClick: handleMomentRowClick,
+    onNoteEdit: handleNoteEdit,
+    onDelete: handleMomentDelete,
+    currentTrackId: track?.track_id || null,
+    searchQuery: searchInput?.value || '',
+  });
+}
+
+function refreshTabCounts() {
+  const moments = getAllMoments();
+  updateTabCounts(state.queue.length, moments.length);
+}
+
+function handleMomentRowClick(moment) {
+  // Find the track in the current queue
+  const trackIndex = state.queue.findIndex((t) => t.track_id === moment.trackId);
+  if (trackIndex < 0) {
+    showBookmarkToastMessage('Set not in current queue');
+    return;
+  }
+  playAtIndex(trackIndex, moment.timestampSec * 1000);
+}
+
+function handleNoteEdit(id, note) {
+  updateMomentNote(id, note);
+  refreshMomentsView();
+}
+
+function handleMomentDelete(id) {
+  deleteMoment(id);
+  refreshMomentsView();
+  refreshTabCounts();
+  // Also refresh ticks if currently playing
+  if (state.currentIndex >= 0) {
+    renderMomentTicks(state.queue[state.currentIndex].track_id);
+  }
+}
+
+function showBookmarkToastMessage(message) {
+  const container = document.getElementById('toast-container');
+  container.innerHTML = '';
+  const toast = document.createElement('div');
+  toast.className = 'toast';
+  toast.innerHTML = `
+    <span class="toast-text">${escapeHtml(message)}</span>
+    <button class="toast-dismiss" aria-label="Dismiss">&times;</button>
+  `;
+  container.appendChild(toast);
+  const timer = setTimeout(() => dismissToast(toast), 3000);
+  toast.querySelector('.toast-dismiss').addEventListener('click', () => {
+    clearTimeout(timer);
+    dismissToast(toast);
+  });
+}
+
+// ── Moments ────────────────────────────────────────────────
+
+function formatTime(sec) {
+  const h = Math.floor(sec / 3600);
+  const m = Math.floor((sec % 3600) / 60);
+  const s = Math.floor(sec % 60);
+  return h > 0
+    ? `${h}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`
+    : `${m}:${s.toString().padStart(2, '0')}`;
+}
+
+function handleBookmark() {
+  if (state.currentIndex < 0 || state.currentIndex >= state.queue.length) return;
+  const track = state.queue[state.currentIndex];
+  const timestampSec = Math.floor(currentMs / 1000);
+  const durationSec = Math.floor(totalMs / 1000);
+
+  const moment = {
+    id: crypto.randomUUID(),
+    trackId: track.track_id,
+    trackTitle: track.title,
+    trackArtist: track.artist,
+    trackPermalink: track.permalink_url,
+    timestampSec,
+    durationSec,
+    note: '',
+    createdAt: new Date().toISOString(),
+  };
+
+  saveMoment(moment);
+  renderMomentTicks(track.track_id);
+  pulseBookmarkBtn();
+  showBookmarkToast(moment);
+  refreshTabCounts();
+  if (activeTab === 'moments') refreshMomentsView();
+}
+
+function pulseBookmarkBtn() {
+  // Visual feedback moved to toast only (bookmark button removed from player bar)
+}
+
+function renderMomentTicks(trackId) {
+  const bar = document.querySelector('.progress-bar');
+  // Remove existing ticks
+  bar.querySelectorAll('.progress-moment').forEach((el) => el.remove());
+
+  const moments = getMomentsForTrack(trackId);
+  if (moments.length === 0) {
+    updateMomentsToggle(0);
+    return;
+  }
+
+  // Get duration from the track's total
+  const track = state.queue[state.currentIndex];
+  const durSec = moments[0]?.durationSec || Math.floor(totalMs / 1000);
+  if (durSec <= 0) return;
+
+  moments.forEach((m, i) => {
+    const pct = (m.timestampSec / durSec) * 100;
+    const tick = document.createElement('div');
+    tick.className = 'progress-moment';
+    if (i === moments.length - 1) tick.classList.add('latest');
+    tick.style.left = `${pct}%`;
+    if (!momentsTicksVisible) tick.style.display = 'none';
+    bar.appendChild(tick);
+  });
+
+  updateMomentsToggle(moments.length);
+}
+
+function updateMomentsToggle(count) {
+  const toggle = document.getElementById('moments-toggle');
+  const countEl = document.getElementById('moments-count');
+  if (count > 0) {
+    toggle.classList.add('visible');
+    toggle.classList.toggle('active', momentsTicksVisible);
+    countEl.textContent = count;
+  } else {
+    toggle.classList.remove('visible');
+  }
+}
+
+function showBookmarkToast(moment) {
+  const container = document.getElementById('toast-container');
+  // Remove any existing toast
+  container.innerHTML = '';
+
+  const toast = document.createElement('div');
+  toast.className = 'toast';
+  const ts = formatTime(moment.timestampSec);
+
+  toast.innerHTML = `
+    <span class="toast-icon">&#10003;</span>
+    <span class="toast-text">Moment saved at <strong>${ts}</strong></span>
+    <button class="toast-action" data-moment-id="${moment.id}">+ Add note</button>
+    <button class="toast-dismiss" aria-label="Dismiss">&times;</button>
+  `;
+
+  container.appendChild(toast);
+
+  // Auto-dismiss after 4s
+  let dismissTimer = setTimeout(() => dismissToast(toast), 4000);
+
+  // Dismiss button
+  toast.querySelector('.toast-dismiss').addEventListener('click', () => {
+    clearTimeout(dismissTimer);
+    dismissToast(toast);
+  });
+
+  // "+ Add note" → expand to inline input
+  toast.querySelector('.toast-action').addEventListener('click', (e) => {
+    clearTimeout(dismissTimer);
+    const btn = e.currentTarget;
+    const id = btn.dataset.momentId;
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.className = 'toast-note-input';
+    input.placeholder = 'Type a note...';
+    btn.replaceWith(input);
+    input.focus();
+
+    function saveNote() {
+      const note = input.value.trim();
+      if (note) {
+        updateMomentNote(id, note);
+        if (activeTab === 'moments') refreshMomentsView();
+      }
+      dismissToast(toast);
+    }
+
+    input.addEventListener('keydown', (ev) => {
+      if (ev.key === 'Enter') saveNote();
+      if (ev.key === 'Escape') dismissToast(toast);
+    });
+    input.addEventListener('blur', saveNote);
+  });
+}
+
+function dismissToast(toast) {
+  toast.classList.add('dismissing');
+  setTimeout(() => toast.remove(), 200);
+}
+
 // ── Init ────────────────────────────────────────────────────
 
 async function init() {
   // Player
   initPlayer({
     onFinish: playNext,
-    onProgress: (currentMs, totalMs) => {
-      updateProgress(currentMs, totalMs);
+    onProgress: (ms, total) => {
+      currentMs = ms;
+      totalMs = total;
+      updateProgress(ms, total);
+      savePositionDebounced();
     },
     onPlayState: (playing) => {
       const playBtn = document.getElementById('btn-play');
@@ -711,6 +965,22 @@ async function init() {
     },
   });
 
+  // Tab switching
+  document.querySelectorAll('.tab-btn').forEach((btn) => {
+    btn.addEventListener('click', () => switchTab(btn.dataset.tab));
+  });
+
+  // Group toggle (moments view)
+  document.getElementById('group-toggle').addEventListener('click', (e) => {
+    e.currentTarget.classList.toggle('active');
+    document.getElementById('moments-area').classList.toggle('ungrouped');
+  });
+
+  // Moments search
+  document.getElementById('moments-search').addEventListener('input', () => {
+    if (activeTab === 'moments') refreshMomentsView();
+  });
+
   // Stepper buttons
   document.querySelectorAll('.stepper-btn').forEach((btn) => {
     btn.addEventListener('click', () => {
@@ -732,18 +1002,28 @@ async function init() {
   document.getElementById('btn-play').addEventListener('click', () => {
     // If no audio loaded but we have a current track, load it first
     if (!hasAudioSource() && state.currentIndex >= 0) {
-      playAtIndex(state.currentIndex);
+      playAtIndex(state.currentIndex, state.resumePositionMs || 0);
+      state.resumePositionMs = 0;
     } else {
       toggle();
     }
   });
   document.getElementById('btn-next').addEventListener('click', playNext);
 
+  // Moments toggle: show/hide ticks on progress bar
+  document.getElementById('moments-toggle').addEventListener('click', () => {
+    momentsTicksVisible = !momentsTicksVisible;
+    const ticks = document.querySelectorAll('.progress-moment');
+    ticks.forEach(t => t.style.display = momentsTicksVisible ? '' : 'none');
+    document.getElementById('moments-toggle').classList.toggle('active', momentsTicksVisible);
+  });
+
   // Media Session (Global Media Controls in Chrome toolbar)
   if ('mediaSession' in navigator) {
     navigator.mediaSession.setActionHandler('play', () => {
       if (!hasAudioSource() && state.currentIndex >= 0) {
-        playAtIndex(state.currentIndex);
+        playAtIndex(state.currentIndex, state.resumePositionMs || 0);
+        state.resumePositionMs = 0;
       } else {
         toggle();
       }
@@ -770,31 +1050,137 @@ async function init() {
   // Progress bar hover tooltip
   const tooltip = document.getElementById('progress-tooltip');
 
-  progressBar.addEventListener('mousemove', (e) => {
-    const rect = progressBar.getBoundingClientRect();
-    const fraction = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
-    // Get current total duration from the progress-total time display
+  const SNAP_THRESHOLD = 0.02; // 2% of bar width to snap to a moment
+  let tooltipLocked = false; // true when mouse is on the tooltip itself
+
+  function getTotalSec() {
     const totalText = document.querySelector('.progress-total')?.textContent || '0:00';
     const parts = totalText.split(':').map(Number);
-    let totalSec = 0;
-    if (parts.length === 3) totalSec = parts[0] * 3600 + parts[1] * 60 + parts[2];
-    else if (parts.length === 2) totalSec = parts[0] * 60 + parts[1];
+    if (parts.length === 3) return parts[0] * 3600 + parts[1] * 60 + parts[2];
+    if (parts.length === 2) return parts[0] * 60 + parts[1];
+    return 0;
+  }
+
+  progressBar.addEventListener('mousemove', (e) => {
+    // Don't update tooltip while the user is interacting with it
+    if (tooltipLocked) return;
+
+    const rect = progressBar.getBoundingClientRect();
+    const fraction = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+    const totalSec = getTotalSec();
 
     if (totalSec > 0) {
       const hoverSec = Math.floor(fraction * totalSec);
-      const hrs = Math.floor(hoverSec / 3600);
-      const min = Math.floor((hoverSec % 3600) / 60);
-      const sec = hoverSec % 60;
-      tooltip.textContent = hrs > 0
-        ? `${hrs}:${min.toString().padStart(2, '0')}:${sec.toString().padStart(2, '0')}`
-        : `${min}:${sec.toString().padStart(2, '0')}`;
+
+      // Check if near a moment tick
+      let snapped = null;
+      if (state.currentIndex >= 0) {
+        const track = state.queue[state.currentIndex];
+        const moments = getMomentsForTrack(track.track_id);
+        for (const m of moments) {
+          const mFrac = m.timestampSec / totalSec;
+          if (Math.abs(fraction - mFrac) < SNAP_THRESHOLD) {
+            snapped = m;
+            break;
+          }
+        }
+      }
+
+      if (snapped) {
+        const ts = formatTime(snapped.timestampSec);
+        const noteHtml = snapped.note
+          ? `<span class="tooltip-note" data-moment-id="${snapped.id}" data-note="${escapeHtml(snapped.note)}">${escapeHtml(snapped.note)}</span>`
+          : `<span class="tooltip-note" data-moment-id="${snapped.id}" data-note=""><em>moment</em></span>`;
+        tooltip.innerHTML = `<strong>${ts}</strong> &middot; ${noteHtml} <button class="tooltip-delete" data-moment-id="${snapped.id}" title="Delete moment">&times;</button>`;
+        tooltip.classList.add('snapped');
+        // Lock tooltip to the moment's position on the bar, not the cursor
+        const snapPx = (snapped.timestampSec / totalSec) * rect.width;
+        tooltip.style.left = snapPx + 'px';
+        return; // don't reposition to cursor below
+      } else {
+        const hrs = Math.floor(hoverSec / 3600);
+        const min = Math.floor((hoverSec % 3600) / 60);
+        const sec = hoverSec % 60;
+        tooltip.textContent = hrs > 0
+          ? `${hrs}:${min.toString().padStart(2, '0')}:${sec.toString().padStart(2, '0')}`
+          : `${min}:${sec.toString().padStart(2, '0')}`;
+        tooltip.classList.remove('snapped');
+      }
     } else {
       tooltip.textContent = '0:00';
+      tooltip.classList.remove('snapped');
     }
 
-    // Position tooltip at cursor X
-    const leftPx = e.clientX - rect.left;
-    tooltip.style.left = leftPx + 'px';
+    // Position tooltip at cursor X (non-snapped only)
+    const rect2 = progressBar.getBoundingClientRect();
+    tooltip.style.left = (e.clientX - rect2.left) + 'px';
+  });
+
+  // Keep tooltip visible and stable while mouse is on it
+  tooltip.addEventListener('mouseenter', () => { tooltipLocked = true; });
+  tooltip.addEventListener('mouseleave', () => {
+    tooltipLocked = false;
+    tooltip.classList.remove('snapped');
+    tooltip.textContent = '';
+  });
+
+  // Tooltip clicks: always stop propagation so clicks never seek
+  tooltip.addEventListener('click', (e) => {
+    e.stopPropagation();
+
+    // Delete button
+    const deleteBtn = e.target.closest('.tooltip-delete');
+    if (deleteBtn) {
+      const id = deleteBtn.dataset.momentId;
+      deleteMoment(id);
+      if (state.currentIndex >= 0) {
+        renderMomentTicks(state.queue[state.currentIndex].track_id);
+      }
+      refreshTabCounts();
+      if (activeTab === 'moments') refreshMomentsView();
+      tooltipLocked = false;
+      tooltip.classList.remove('snapped');
+      tooltip.textContent = '';
+      return;
+    }
+
+    // Note editing: click the note text to edit inline
+    const noteSpan = e.target.closest('.tooltip-note');
+    if (noteSpan && !tooltip.querySelector('.tooltip-note-input')) {
+      const momentId = noteSpan.dataset.momentId;
+      const currentNote = noteSpan.dataset.note || '';
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.className = 'tooltip-note-input';
+      input.value = currentNote;
+      input.placeholder = 'Add a note...';
+      noteSpan.textContent = '';
+      noteSpan.appendChild(input);
+      input.focus();
+
+      function saveNote() {
+        const note = input.value.trim();
+        updateMomentNote(momentId, note);
+        if (activeTab === 'moments') refreshMomentsView();
+        // Re-render the tooltip with updated note
+        const moments = getMomentsForTrack(state.queue[state.currentIndex]?.track_id);
+        const m = moments.find(m => m.id === momentId);
+        if (m) {
+          const ts = formatTime(m.timestampSec);
+          const noteHtml = note
+            ? `<span class="tooltip-note" data-moment-id="${m.id}" data-note="${escapeHtml(note)}">${escapeHtml(note)}</span>`
+            : `<span class="tooltip-note" data-moment-id="${m.id}" data-note=""><em>moment</em></span>`;
+          tooltip.innerHTML = `<strong>${ts}</strong> &middot; ${noteHtml} <button class="tooltip-delete" data-moment-id="${m.id}" title="Delete moment">&times;</button>`;
+        }
+      }
+
+      input.addEventListener('keydown', (ev) => {
+        ev.stopPropagation(); // prevent B from bookmarking
+        if (ev.key === 'Enter') saveNote();
+        if (ev.key === 'Escape') saveNote(); // save whatever is there
+      });
+      input.addEventListener('blur', saveNote);
+    }
   });
 
   // Hamburger menu
@@ -825,6 +1211,21 @@ async function init() {
       closeMenu();
       closeLikesModal();
     }
+    // B key bookmarks a moment
+    if (e.key === 'b' || e.key === 'B') {
+      const tag = e.target.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      e.preventDefault();
+      handleBookmark();
+    }
+    // / key focuses moments search (when on moments tab)
+    if (e.key === '/' && activeTab === 'moments') {
+      const tag = e.target.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+      e.preventDefault();
+      document.getElementById('moments-search')?.focus();
+    }
   });
 
   // View likes data modal
@@ -844,10 +1245,19 @@ async function init() {
     if (e.target === e.currentTarget) closeLikesModal();
   });
 
+  // Save position immediately when leaving the page
+  window.addEventListener('beforeunload', () => {
+    if (positionSaveTimer) clearTimeout(positionSaveTimer);
+    saveState();
+  });
+
   // Re-check auth when user tabs back (auto-detect login)
   document.addEventListener('visibilitychange', () => {
     if (!document.hidden) checkAuth();
   });
+
+  // Load moments from storage (independent of queue)
+  await loadMoments();
 
   // Check auth
   const auth = await checkAuth();
@@ -883,11 +1293,25 @@ async function init() {
 
     if (isAuthed && state.currentIndex >= 0 && state.currentIndex < state.queue.length) {
       updatePlayerBar(state.queue[state.currentIndex]);
+      renderMomentTicks(state.queue[state.currentIndex].track_id);
+      // Show saved position in progress bar
+      if (saved.positionMs > 0) {
+        currentMs = saved.positionMs;
+        const track = state.queue[state.currentIndex];
+        const durMs = track.duration_ms || 0;
+        if (durMs > 0) updateProgress(saved.positionMs, durMs);
+      }
     }
 
+    // Store saved position for resume on first play
+    state.resumePositionMs = saved.positionMs || 0;
+
     render();
+    refreshTabCounts();
   } else if (isAuthed) {
     handleGenerate();
+  } else {
+    refreshTabCounts();
   }
 }
 

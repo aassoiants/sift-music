@@ -1,5 +1,5 @@
-// SoundCloud audio player — hls.js + <audio> directly in the app tab
-// No offscreen document, no messaging — just direct playback
+// SoundCloud audio player - hls.js + <audio> directly in the app tab
+// No offscreen document, no messaging - just direct playback
 
 import { getStreamUrl } from './api.js';
 
@@ -25,7 +25,7 @@ export function initPlayer({ onFinish, onProgress, onPlayState, onLoading }) {
   audio.id = 'scq-audio-player';
   document.body.appendChild(audio);
 
-  // Bind native audio events directly — no messaging needed
+  // Bind native audio events directly - no messaging needed
   audio.addEventListener('timeupdate', () => {
     if (audio.duration && !isNaN(audio.duration) && onProgressCallback) {
       onProgressCallback(audio.currentTime * 1000, audio.duration * 1000);
@@ -62,20 +62,20 @@ export function initPlayer({ onFinish, onProgress, onPlayState, onLoading }) {
   });
 }
 
-export async function loadTrack(track, autoPlay = true) {
-  console.log('[SCQ player] loadTrack:', track.title);
+export async function loadTrack(track, autoPlay = true, resumeAtSec = 0) {
+  console.log('[SCQ player] loadTrack', resumeAtSec > 0 ? `(resume at ${Math.round(resumeAtSec)}s)` : '');
   const loadId = ++currentLoadId;
   currentTrack = track;
   recoveryAttempts = 0;
   if (onLoadingCallback) onLoadingCallback(true);
 
-  await _loadStream(track, autoPlay, null, loadId);
+  await _loadStream(track, autoPlay, resumeAtSec > 0 ? resumeAtSec : null, loadId);
 }
 
 /**
  * Internal: resolve stream URL and wire up hls.js / progressive playback.
  * Called by loadTrack() on first load, and by _recoverStream() on stale-URL retry.
- * @param {number|null} resumeAt — seconds to seek to after manifest loads (recovery only)
+ * @param {number|null} resumeAt - seconds to seek to after manifest loads (recovery only)
  */
 async function _loadStream(track, autoPlay = true, resumeAt = null, loadId = currentLoadId) {
   try {
@@ -87,7 +87,7 @@ async function _loadStream(track, autoPlay = true, resumeAt = null, loadId = cur
       return;
     }
 
-    console.log('[SCQ player] Stream resolved:', stream.protocol, stream.url.substring(0, 80));
+    console.log('[SCQ player] Stream resolved:', stream.protocol);
 
     // Clean up previous HLS instance
     if (hls) {
@@ -99,7 +99,7 @@ async function _loadStream(track, autoPlay = true, resumeAt = null, loadId = cur
     audio.load();
 
     if (stream.protocol === 'hls' && window.Hls && Hls.isSupported()) {
-      // HLS stream — use hls.js
+      // HLS stream - use hls.js
       hls = new Hls({
         debug: false,
         enableWorker: true,
@@ -111,7 +111,7 @@ async function _loadStream(track, autoPlay = true, resumeAt = null, loadId = cur
         console.error('[SCQ player] HLS error:', data.type, data.details);
         if (data.fatal) {
           if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
-            // Likely expired CDN URL — attempt stream re-resolution
+            // Likely expired CDN URL - attempt stream re-resolution
             _recoverStream();
           } else if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
             hls.recoverMediaError();
@@ -147,7 +147,7 @@ async function _loadStream(track, autoPlay = true, resumeAt = null, loadId = cur
       });
 
     } else if (stream.protocol === 'progressive') {
-      // Progressive MP3 — direct URL
+      // Progressive MP3 - direct URL
       if (onLoadingCallback) onLoadingCallback(false);
       audio.src = stream.url;
 
@@ -197,14 +197,6 @@ async function _recoverStream() {
   await _loadStream(currentTrack, true, resumeAt, currentLoadId);
 }
 
-export function play() {
-  if (audio) audio.play().catch(() => {});
-}
-
-export function pause() {
-  if (audio) audio.pause();
-}
-
 export function toggle() {
   if (!audio) return;
   if (audio.paused) audio.play().catch(() => {});
@@ -214,6 +206,12 @@ export function toggle() {
 export function seekTo(fraction) {
   if (audio && audio.duration && !isNaN(audio.duration)) {
     audio.currentTime = audio.duration * fraction;
+  }
+}
+
+export function seekToTime(seconds) {
+  if (audio) {
+    audio.currentTime = seconds;
   }
 }
 

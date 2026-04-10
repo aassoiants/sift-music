@@ -5,7 +5,7 @@
 chrome.action.onClicked.addListener(async () => {
   const appUrl = chrome.runtime.getURL('app.html');
   try {
-    // Ask the app tab if it's open (ping-pong — no tabs permission needed)
+    // Ask the app tab if it's open (ping-pong - no tabs permission needed)
     const response = await chrome.runtime.sendMessage({ type: 'PING' });
     if (response?.tabId) {
       chrome.tabs.update(response.tabId, { active: true });
@@ -13,7 +13,7 @@ chrome.action.onClicked.addListener(async () => {
       return;
     }
   } catch (e) {
-    // No listener = app not open — fall through to create
+    // No listener = app not open - fall through to create
   }
   chrome.tabs.create({ url: appUrl });
 });
@@ -55,7 +55,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 async function broadcastSCTabStatus() {
   const scTabs = await chrome.tabs.query({ url: 'https://soundcloud.com/*' });
   chrome.runtime.sendMessage({ type: 'SC_TAB_STATUS', hasSCTab: scTabs.length > 0 }).catch(() => {
-    // App tab may not be open — ignore
+    // App tab may not be open - ignore
   });
 }
 
