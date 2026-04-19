@@ -1,6 +1,6 @@
 # Privacy Policy - Sift: SoundCloud, Tuned to You
 
-**Last updated: February 24, 2026**
+**Last updated: April 19, 2026**
 
 ## What Sift does
 
@@ -12,6 +12,12 @@ Sift is a Chrome Extension that builds personalized listening queues from your S
 - **SoundCloud client ID**: Extracted from SoundCloud's web app at runtime. Used alongside the OAuth token for API calls.
 - **Your liked tracks and feed**: Fetched from SoundCloud's API (`api-v2.soundcloud.com`) and cached locally in your browser using `chrome.storage.local`. Cache persists until you explicitly refresh.
 - **Queue state and preferences**: Your queue order, playback position, and settings (ratio, duration filter) are stored locally in `chrome.storage.local` so they persist across sessions.
+- **Your moments**: When you press B to bookmark a moment in a set, Sift saves the timestamp, the track it belongs to, and any note you wrote. Stored locally in `chrome.storage.local`. Never transmitted anywhere.
+- **Local backups of moments**: To protect against data loss, Sift keeps a rolling backup of your moments and creates a one-time snapshot every time the extension is updated. All backups stay in `chrome.storage.local` and are never transmitted.
+
+## What data is sent to SoundCloud on your behalf
+
+When you click the Like, Unlike, Repost, or Un-repost buttons on a track row, Sift sends the corresponding API request to `api-v2.soundcloud.com` using your OAuth token. This modifies your SoundCloud account state the same way clicking those buttons on soundcloud.com would. No other actions are ever sent.
 
 ## What data is NOT collected
 
@@ -34,9 +40,9 @@ The only external service Sift talks to is **SoundCloud** (`soundcloud.com`, `ap
 | Permission | Why |
 |---|---|
 | `cookies` | Reads your existing SoundCloud OAuth token from `soundcloud.com` cookies. No cookies are created or modified. |
-| `storage` | Caches track data and persists your queue, playback position, and settings locally. |
-| `https://soundcloud.com/*` | Runs content scripts to extract the SoundCloud client ID needed for API authentication. Also used to detect whether a SoundCloud tab is open (required for playback). |
-| `https://api-v2.soundcloud.com/*` | Fetches your liked tracks, feed, and resolves audio stream URLs. |
+| `storage` | Caches track data and persists your queue, playback position, settings, moments (timestamps and notes you wrote), and rolling/per-update moment backups locally. |
+| `https://soundcloud.com/*` | Runs content scripts to extract the SoundCloud client ID needed for API authentication. Also detects whether a SoundCloud tab is open so Sift can prompt you to open one if needed (the tab keeps the client ID fresh). |
+| `https://api-v2.soundcloud.com/*` | Fetches your liked tracks, feed, and resolves audio stream URLs. Also sends like, unlike, repost, and un-repost actions when you click those buttons on a track row. |
 | `https://*.sndcdn.com/*` | Loads audio streams from SoundCloud's CDN for playback. |
 
 ## Data sharing

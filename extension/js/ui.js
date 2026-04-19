@@ -283,7 +283,7 @@ export function renderMomentsTable(moments, { onRowClick, onNoteEdit, onDelete, 
     html += `<tr class="group-row"><td colspan="6"><div class="group-inner">`;
     html += `<div class="group-left">`;
     html += `<span class="group-title">${escapeHtml(g.title)}</span>`;
-    html += `<span class="group-dj">&mdash; ${escapeHtml(g.artist)}</span>`;
+    html += `<span class="group-dj">${escapeHtml(g.artist)}</span>`;
     html += `</div>`;
     html += `<div class="group-right">`;
 

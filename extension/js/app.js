@@ -55,7 +55,6 @@ async function checkAuth() {
   return new Promise((resolve) => {
     chrome.runtime.sendMessage({ type: 'GET_AUTH' }, (auth) => {
       const loggedOutOverlay = document.getElementById('logged-out-overlay');
-      const queueArea = document.querySelector('.queue-area');
       const isAuthed = auth?.oauthToken && auth?.clientId;
 
       const likesDataBtn = document.getElementById('menu-likes-data');
@@ -64,7 +63,10 @@ async function checkAuth() {
       if (isAuthed) {
         if (loggedOutOverlay) loggedOutOverlay.style.display = 'none';
         if (likesDataBtn) likesDataBtn.style.display = '';
-        if (controlsBar) controlsBar.style.display = '';
+        // Controls-bar belongs to Queue tab only. Without this guard, every
+        // auth re-check (e.g., visibilitychange when you tab back) would pop
+        // the queue settings into view on the Moments tab.
+        if (controlsBar) controlsBar.style.display = activeTab === 'moments' ? 'none' : '';
         if (playerBar) playerBar.style.display = '';
         updateQueueScroll();
         checkSCTab();

@@ -101,15 +101,15 @@ Required to read the user's existing SoundCloud OAuth token for API authenticati
 
 ### storage
 
-Stores the user's queue, playback position, cached track data, and settings (ratio, duration filter) locally in the browser.
+Stores the user's queue, playback position, settings (ratio, duration filter), cached track data, moments (timestamps and notes the user wrote when bookmarking moments in sets), and rolling and per-update moment backups for data-loss recovery. All in the browser, never transmitted.
 
 ### Host: soundcloud.com
 
-Content scripts run on soundcloud.com to extract the client\_id from SoundCloud's runtime configuration, which is required for API authentication. Also used to detect whether a SoundCloud tab is open, which is required for audio playback.
+Content scripts run on soundcloud.com to extract the client\_id from SoundCloud's runtime configuration, which is required for API authentication. Also detects whether a SoundCloud tab is open so Sift can prompt the user to open one if needed (the tab keeps the client\_id fresh).
 
 ### Host: api-v2.soundcloud.com
 
-Fetches the user's liked tracks, feed items, and resolves audio stream URLs from SoundCloud's API.
+Fetches the user's liked tracks, feed items, and resolves audio stream URLs from SoundCloud's API. Also sends like, unlike, repost, and un-repost actions when the user clicks those buttons on a track row.
 
 ### Host: \*.sndcdn.com
 

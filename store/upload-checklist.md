@@ -66,7 +66,7 @@ Source of truth: `store/listing/store-listing.md`. Compare what's live in CWS to
 ### Build → Store listing → Graphic assets
 
 - [ ] **Store icon (128x128)**: pulled from `manifest.json` "icons" → `extension/images/icon-128.png`. No upload needed unless icon changed.
-- [ ] **Screenshots**: replace from `store/listing/screenshots/` (1280x800 PNG). Up to 5. Order matters; first one shows largest.
+- [ ] **Screenshots**: replace from `store/listing/screenshots/` (1280x800 PNG, exact). Up to 5. Order matters; first one shows largest. See "Screenshot capture procedure" below.
 - [ ] **Small promo tile (440x280)**: required. Source: `store/listing/promo-tile.html` rendered to PNG. Skipping this hurts ranking (Google demotes listings without it).
 - [ ] **Marquee promo tile (1400x560)**: optional. Skip unless we're actively pursuing being featured (editorial-only, can't request). See `research/cws-promo-tiles.md`.
 
@@ -107,3 +107,35 @@ For Sift, the fields the form asks for:
 - `store/releases/v{X}/` is the immutable snapshot of what shipped at version X. Don't edit after the release is tagged.
 - `store/archive/` holds zips from before the new structure (pre-v0.5.0). Reference only, not used in submission.
 - When upgrading after multiple versions of GitHub-only releases, expect to refresh **all** screenshots, copy, and possibly the promo tile. The live CWS state is whatever was uploaded last, not what's in our repo.
+
+## Screenshot capture procedure
+
+CWS requires screenshots at exactly 1280x800. Chrome's DevTools Responsive mode will silently snap to a smaller width if the DevTools panel is eating horizontal space. The most common failure: capturing at 1088x680 or 1120x800 because DevTools was docked to the right.
+
+**Setup once:**
+1. Reload Sift at `chrome://extensions` so the latest code is active (otherwise UI bugs already fixed in source will still appear in the screenshot)
+2. Open Sift's app tab
+3. Open DevTools (F12)
+4. **Dock DevTools to bottom**, not right (top-right `...` in DevTools, "Dock side" -> bottom). This is the critical step. Right-docked DevTools steals horizontal width and Responsive mode caps at whatever is left.
+5. Click the device-toolbar icon in DevTools (Ctrl+Shift+M) to enter Responsive mode
+6. Set dimensions to exactly 1280 x 800
+
+**Per screenshot:**
+1. Navigate to the view you want (Queue tab, Moments tab, menu open, modal open, etc.)
+2. Verify the dimensions readout still says 1280 x 800
+3. In DevTools device toolbar, three-dot menu -> Capture screenshot
+4. Save to `store/listing/screenshots/{name}.png` (overwrite if it exists)
+5. Verify size with PowerShell: `powershell.exe -NoProfile -Command "Add-Type -AssemblyName System.Drawing; [System.Drawing.Image]::FromFile('Z:\path\to\file.png') | Select-Object Width,Height"`
+
+**Current screenshot set** (target views, all on a populated Sift):
+
+| File | What to show |
+|---|---|
+| queue.png | Queue tab with several tracks visible, player bar showing track playing, controls-bar at top |
+| moments.png | Moments tab with grouped table, mini-timelines visible, at least one set with multiple moments |
+| menu.png | Hamburger menu open showing all menu items |
+| likes-modal.png | Likes data modal open showing year breakdown, top genres/artists |
+| logged-out.png | Logged-out overlay (sign out of soundcloud.com or test from a fresh profile) |
+| no-soundcloud-tab.png | No-SC-tab overlay (close all soundcloud.com tabs while signed in elsewhere) |
+
+**Privacy note:** real account names and set titles are acceptable to upload (per project decision). Don't capture views that show your queue order or anything you'd consider personal listening telemetry.
