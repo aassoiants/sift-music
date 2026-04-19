@@ -1,4 +1,51 @@
-// Service worker: opens app tab on icon click, handles auth
+// Service worker: opens app tab on icon click, handles auth, manages update lifecycle
+
+// ── Update lifecycle ───────────────────────────────────────
+//
+// onInstalled fires with reason='update' AFTER the new version is installed but
+// BEFORE the new code starts touching user data. We snapshot moments to a
+// permanent versioned key so that even if the new version's code corrupts
+// scq-moments, the pre-update state is recoverable from chrome.storage.local.
+//
+// onUpdateAvailable fires when Chrome has downloaded a new version but BEFORE
+// it applies the update. We let the SW restart naturally (Chrome decides) and
+// notify any open Sift tab so the user can reload at their own pace.
+// See docs/decisions/003-extension-update-safety.md.
+
+chrome.runtime.onInstalled.addListener(async (details) => {
+  if (details.reason !== 'update') return;
+  const newVersion = chrome.runtime.getManifest().version;
+  const previousVersion = details.previousVersion;
+  console.log(`[Sift] Update detected: v${previousVersion} -> v${newVersion}`);
+
+  try {
+    const result = await chrome.storage.local.get('scq-moments');
+    const moments = result['scq-moments'];
+    if (!Array.isArray(moments) || moments.length === 0) return;
+
+    const snapshotKey = `scq-moments-pre-v${newVersion}`;
+    const existing = await chrome.storage.local.get(snapshotKey);
+    if (existing[snapshotKey] !== undefined) {
+      // Snapshot already exists for this version (rare: re-install of same version)
+      console.log(`[Sift] Snapshot ${snapshotKey} already present, not overwriting`);
+      return;
+    }
+    await chrome.storage.local.set({ [snapshotKey]: moments });
+    console.log(`[Sift] Snapshotted ${moments.length} moments to ${snapshotKey}`);
+  } catch (err) {
+    console.error('[Sift] Pre-update snapshot failed:', err);
+  }
+});
+
+chrome.runtime.onUpdateAvailable.addListener((details) => {
+  // Don't auto-reload. Tell the open Sift tab so the user can reload deliberately.
+  chrome.runtime.sendMessage({
+    type: 'UPDATE_AVAILABLE',
+    version: details.version,
+  }).catch(() => {
+    // App tab not open: Chrome will apply the update on next browser restart anyway
+  });
+});
 
 // ── Tab management ─────────────────────────────────────────
 

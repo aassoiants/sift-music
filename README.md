@@ -120,7 +120,7 @@ extension/
   js/
     app.js               State management, event wiring, loading overlay, persistence
     api.js               SoundCloud API v2 client (likes, feed, stream URL resolution, caching)
-    queue.js             Queue algorithm (filter, deduplicate, year-spread select, interleave)
+    queue.js             Queue algorithm (filter, deduplicate, year-spread select, mix)
     player.js            Audio player (hls.js integration, buffering detection, stale stream recovery)
     moments.js           Moment CRUD (load, save, delete, update note, stored in chrome.storage.local)
     ui.js                DOM rendering (queue list, moments table, player bar, progress bar, tooltips)
@@ -146,7 +146,7 @@ Piggybacks on your existing SoundCloud session. Never touches passwords or login
 3. Deduplicate feed (remove any track that already appears in likes)
 4. Group likes by upload year → shuffle each year's bucket → round-robin select across all years
 5. Shuffle feed
-6. Interleave at the configured ratio (e.g., 3 likes then 1 feed, repeat)
+6. Mix at the configured ratio (e.g., 3 likes then 1 feed, repeat)
 
 ### Stream playback
 

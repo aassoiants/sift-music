@@ -1271,6 +1271,61 @@ body { background: #0d0d0d; color: #e0e0e0; font-family: 'Segoe UI', system-ui, 
 .toast.dismissing {
   animation: toast-out 0.2s ease-in forwards;
 }
+.toast.toast-sticky {
+  border-left-color: #ff3333;
+  background: #1a1010;
+  pointer-events: auto;
+  max-width: 460px;
+  white-space: normal;
+}
+.toast.toast-sticky .toast-text {
+  color: #ffd0d0;
+}
+
+/* ── Update Available Banner ── */
+.update-banner {
+  position: sticky;
+  top: 0;
+  z-index: 400;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 8px 16px;
+  background: #00aaff;
+  color: #0d0d0d;
+  font-size: 12px;
+  font-weight: 500;
+}
+.update-banner .update-text {
+  flex-shrink: 0;
+}
+.update-reload-btn {
+  background: #0d0d0d;
+  color: #ffffff;
+  border: none;
+  padding: 4px 12px;
+  border-radius: 3px;
+  font-size: 11px;
+  font-family: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+.update-reload-btn:hover {
+  background: #1a1a1a;
+}
+.update-dismiss-btn {
+  background: none;
+  border: none;
+  color: #0d0d0d;
+  cursor: pointer;
+  font-size: 18px;
+  padding: 0 4px;
+  line-height: 1;
+}
+.update-dismiss-btn:hover {
+  opacity: 0.6;
+}
 @keyframes toast-in {
   from { opacity: 0; transform: translateY(12px); }
   to { opacity: 1; transform: translateY(0); }

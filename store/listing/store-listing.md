@@ -24,9 +24,11 @@ You control the mix:
 * Minimum duration (filter to long-form sets or include everything)
 * Shuffle while keeping the year-spread balance
 
+Like, unlike, or repost any track from the row without leaving Sift.
+
 Press B while listening to bookmark a moment in any set. Your moments are grouped by set with mini-timelines, search, and notes. Click any moment to jump right back. You can also hover the blue ticks on the progress bar to see, edit, or delete moments without leaving the player.
 
-Built-in player with HLS streaming. No SoundCloud tab needed. Queue and position persist across sessions, and playback resumes where you left off. Shows up in your browser's media controls with title, artist, play/pause/next/prev.
+Built-in player with HLS streaming. No SoundCloud tab needed. Queue and position persist across sessions. When you reopen Sift and hit play, audio starts immediately with no waiting for the stream to load. Shows up in your browser's media controls with title, artist, play/pause/next/prev.
 
 Likes data shows stats on your full history: total hours, duration breakdown, tracks by year, top genres, top artists.
 

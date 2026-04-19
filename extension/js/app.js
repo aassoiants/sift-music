@@ -4,7 +4,7 @@ import { fetchLikes, fetchFeed, clearCache, likeTrack, unlikeTrack, repostTrack,
 import { generateQueue, shuffleQueue } from './queue.js';
 import { renderQueue, updatePlayerBar, updateProgress, scrollToPlaying, escapeHtml, renderMomentsTable, updateTabCounts } from './ui.js';
 import { initPlayer, loadTrack, toggle, seekTo, seekToTime, hasAudioSource } from './player.js';
-import { loadMoments, saveMoment, getMomentsForTrack, getAllMoments, updateMomentNote, deleteMoment } from './moments.js';
+import { initMoments, loadMoments, saveMoment, getMomentsForTrack, getAllMoments, updateMomentNote, deleteMoment, flushPendingWrites } from './moments.js';
 
 const STORAGE_KEY = 'scq-state';
 
@@ -724,6 +724,15 @@ function switchTab(tab) {
   }
 }
 
+// Re-render every moments-dependent UI surface. Called when another tab writes
+// scq-moments (multi-tab sync) so this tab doesn't show stale state.
+function refreshAllMomentsUI() {
+  const trackId = state.queue[state.currentIndex]?.track_id;
+  if (trackId) renderMomentTicks(trackId);
+  refreshTabCounts();
+  if (activeTab === 'moments') refreshMomentsView();
+}
+
 function refreshMomentsView() {
   const moments = getAllMoments();
   const track = state.currentIndex >= 0 ? state.queue[state.currentIndex] : null;
@@ -767,21 +776,25 @@ function handleMomentDelete(id) {
   }
 }
 
-function showBookmarkToastMessage(message) {
+function showBookmarkToastMessage(message, { sticky = false } = {}) {
   const container = document.getElementById('toast-container');
   container.innerHTML = '';
   const toast = document.createElement('div');
-  toast.className = 'toast';
+  toast.className = 'toast' + (sticky ? ' toast-sticky' : '');
   toast.innerHTML = `
     <span class="toast-text">${escapeHtml(message)}</span>
     <button class="toast-dismiss" aria-label="Dismiss">&times;</button>
   `;
   container.appendChild(toast);
-  const timer = setTimeout(() => dismissToast(toast), 3000);
-  toast.querySelector('.toast-dismiss').addEventListener('click', () => {
-    clearTimeout(timer);
-    dismissToast(toast);
-  });
+  if (sticky) {
+    toast.querySelector('.toast-dismiss').addEventListener('click', () => dismissToast(toast));
+  } else {
+    const timer = setTimeout(() => dismissToast(toast), 3000);
+    toast.querySelector('.toast-dismiss').addEventListener('click', () => {
+      clearTimeout(timer);
+      dismissToast(toast);
+    });
+  }
 }
 
 // ── Moments ────────────────────────────────────────────────
@@ -1256,8 +1269,45 @@ async function init() {
     if (!document.hidden) checkAuth();
   });
 
+  // Wire moments error handler (sticky toast: storage errors must not auto-dismiss)
+  // and external-change handler (multi-tab sync: another tab wrote moments)
+  initMoments({
+    onError: (msg) => showBookmarkToastMessage(msg, { sticky: true }),
+    onExternalChange: refreshAllMomentsUI,
+  });
+
   // Load moments from storage (independent of queue)
   await loadMoments();
+
+  // Version stamp: detect post-update transitions for future migration logic.
+  // See docs/decisions/003-extension-update-safety.md mitigation #2.
+  const currentVersion = chrome.runtime.getManifest().version;
+  const versionStamp = await chrome.storage.local.get('scq-extension-version');
+  const previousVersion = versionStamp['scq-extension-version'];
+  if (previousVersion !== currentVersion) {
+    console.log(`[Sift] Version transition: ${previousVersion || 'none'} -> ${currentVersion}`);
+    await chrome.storage.local.set({ 'scq-extension-version': currentVersion });
+  }
+
+  // Listen for SW broadcast that an update is ready to apply
+  chrome.runtime.onMessage.addListener((msg) => {
+    if (msg?.type === 'UPDATE_AVAILABLE') {
+      const banner = document.getElementById('update-banner');
+      const versionEl = document.getElementById('update-banner-version');
+      if (versionEl) versionEl.textContent = `v${msg.version}`;
+      if (banner) banner.style.display = 'flex';
+    }
+  });
+
+  document.getElementById('update-reload-btn').addEventListener('click', async () => {
+    // Flush any queue/position writes, then any pending moment writes, THEN reload.
+    saveState();
+    await flushPendingWrites();
+    location.reload();
+  });
+  document.getElementById('update-dismiss-btn').addEventListener('click', () => {
+    document.getElementById('update-banner').style.display = 'none';
+  });
 
   // Check auth
   const auth = await checkAuth();
@@ -1300,6 +1350,13 @@ async function init() {
         const track = state.queue[state.currentIndex];
         const durMs = track.duration_ms || 0;
         if (durMs > 0) updateProgress(saved.positionMs, durMs);
+      }
+
+      // Silent preload: prime hls.js with manifest + first segments at the resume position.
+      // Click Play → already buffered, no cold-start "play, buffer, continue".
+      const preloadTrack = state.queue[state.currentIndex];
+      if (preloadTrack.media_transcodings?.length > 0) {
+        loadTrack(preloadTrack, false, (saved.positionMs || 0) / 1000, true);
       }
     }
 

@@ -62,22 +62,23 @@ export function initPlayer({ onFinish, onProgress, onPlayState, onLoading }) {
   });
 }
 
-export async function loadTrack(track, autoPlay = true, resumeAtSec = 0) {
-  console.log('[SCQ player] loadTrack', resumeAtSec > 0 ? `(resume at ${Math.round(resumeAtSec)}s)` : '');
+export async function loadTrack(track, autoPlay = true, resumeAtSec = 0, silent = false) {
+  console.log('[SCQ player] loadTrack', resumeAtSec > 0 ? `(resume at ${Math.round(resumeAtSec)}s)` : '', silent ? '(silent preload)' : '');
   const loadId = ++currentLoadId;
   currentTrack = track;
   recoveryAttempts = 0;
-  if (onLoadingCallback) onLoadingCallback(true);
+  if (!silent && onLoadingCallback) onLoadingCallback(true);
 
-  await _loadStream(track, autoPlay, resumeAtSec > 0 ? resumeAtSec : null, loadId);
+  await _loadStream(track, autoPlay, resumeAtSec > 0 ? resumeAtSec : null, loadId, silent);
 }
 
 /**
  * Internal: resolve stream URL and wire up hls.js / progressive playback.
  * Called by loadTrack() on first load, and by _recoverStream() on stale-URL retry.
  * @param {number|null} resumeAt - seconds to seek to after manifest loads (recovery only)
+ * @param {boolean} silent - if true, suppress onLoading callbacks (used for preload on init)
  */
-async function _loadStream(track, autoPlay = true, resumeAt = null, loadId = currentLoadId) {
+async function _loadStream(track, autoPlay = true, resumeAt = null, loadId = currentLoadId, silent = false) {
   try {
     const stream = await getStreamUrl(track);
 
@@ -117,7 +118,7 @@ async function _loadStream(track, autoPlay = true, resumeAt = null, loadId = cur
             hls.recoverMediaError();
           } else {
             console.error('[SCQ player] Fatal HLS error, skipping track');
-            if (onLoadingCallback) onLoadingCallback(false);
+            if (!silent && onLoadingCallback) onLoadingCallback(false);
             if (onFinishCallback) onFinishCallback();
           }
         }
@@ -131,9 +132,9 @@ async function _loadStream(track, autoPlay = true, resumeAt = null, loadId = cur
         if (loadId !== currentLoadId) return;
 
         console.log('[SCQ player] HLS manifest parsed');
-        if (onLoadingCallback) onLoadingCallback(false);
 
-        // Restore position if recovering from stale URL
+        // Restore position before play() so segment fetch starts at the right spot.
+        // Loading UI stays on; audio's `playing` event will hide it once buffer is real.
         if (resumeAt != null && resumeAt > 0) {
           audio.currentTime = resumeAt;
           console.log('[SCQ player] Resumed at', Math.round(resumeAt), 's');
@@ -147,8 +148,7 @@ async function _loadStream(track, autoPlay = true, resumeAt = null, loadId = cur
       });
 
     } else if (stream.protocol === 'progressive') {
-      // Progressive MP3 - direct URL
-      if (onLoadingCallback) onLoadingCallback(false);
+      // Progressive MP3 - direct URL. `playing` event hides loading UI once buffered.
       audio.src = stream.url;
 
       if (resumeAt != null && resumeAt > 0) {
@@ -164,12 +164,12 @@ async function _loadStream(track, autoPlay = true, resumeAt = null, loadId = cur
       }
     } else {
       console.error('[SCQ player] No supported playback method');
-      if (onLoadingCallback) onLoadingCallback(false);
+      if (!silent && onLoadingCallback) onLoadingCallback(false);
       if (onFinishCallback) onFinishCallback();
     }
   } catch (err) {
     console.error('[SCQ player] Failed to resolve stream URL:', err.message);
-    if (onLoadingCallback) onLoadingCallback(false);
+    if (!silent && onLoadingCallback) onLoadingCallback(false);
     if (onFinishCallback) onFinishCallback();
   }
 }
