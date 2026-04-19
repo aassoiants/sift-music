@@ -41,8 +41,8 @@ When you hear something worth saving, press **B** to bookmark it. Sift saves the
 - Blue tick marks on the progress bar show where your moments are. Hover one to see the note, click to edit it, or delete it
 
 ### Player
-- HLS streaming right in the extension, no SoundCloud tab needed
-- Position saved every 5 seconds and on tab close, restored when you reopen
+- HLS streaming right in the extension. Your SoundCloud tab can stay in the background.
+- Position saved every 5 seconds and on tab close. Reopen, hit play, no wait.
 - Left it paused for hours? It re-resolves the stream and picks up where you stopped
 - Shimmer on buffering so it doesn't feel broken
 - Shows up in your browser's media controls with title, artist, play/pause/next/prev
@@ -50,7 +50,7 @@ When you hear something worth saving, press **B** to bookmark it. Sift saves the
 ### Everything else
 - **Likes data**: stats on your full like history (total hours, duration breakdown, tracks by year, top genres, top artists)
 - **Persistence**: close the tab, come back later, queue is still there
-- **Logged-out detection**: tells you when you're not signed in, auto-detects when you log back in
+- **Auto-detection**: tells you if you're signed out or if no soundcloud.com tab is open. Re-checks when state changes.
 - **One tab**: clicking the icon refocuses the existing Sift tab instead of opening a new one
 - **Accessible**: AA contrast, keyboard nav, aria labels, focus outlines
 
@@ -77,7 +77,7 @@ Chrome extension. Works on any Chromium-based browser: Chrome, Brave, Edge, Arc,
 5. Click **Load unpacked**
 6. Select the `extension/` folder inside the unzipped download
 7. The extension icon should appear in your toolbar
-8. Make sure you're **logged into [soundcloud.com](https://soundcloud.com)** in at least one tab
+8. Open **[soundcloud.com](https://soundcloud.com)** in a tab and sign in. Keep that tab open while using Sift.
 9. Click the extension icon and you're ready to go
 
 ### Usage tips
