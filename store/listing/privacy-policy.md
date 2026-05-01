@@ -1,16 +1,18 @@
 # Privacy Policy - Sift: SoundCloud, Tuned to You
 
-**Last updated: April 19, 2026**
+**Last updated: May 1, 2026**
 
 ## What Sift does
 
-Sift is a Chrome Extension that builds personalized listening queues from your SoundCloud likes and feed. Everything runs locally in your browser.
+Sift is a Chrome Extension that builds listening queues from your SoundCloud likes and feed. Everything runs locally in your browser.
 
 ## What data is accessed
 
 - **SoundCloud OAuth token**: Read from your existing SoundCloud session cookie. Used to authenticate API requests on your behalf. Never stored permanently, never sent anywhere except SoundCloud's own API.
-- **SoundCloud client ID**: Extracted from SoundCloud's web app at runtime. Used alongside the OAuth token for API calls.
+- **SoundCloud client ID**: Extracted from SoundCloud's web app and cached in `chrome.storage.local`. Used alongside the OAuth token for API calls.
+- **Your SoundCloud user ID**: Fetched once from SoundCloud's `/me` endpoint and cached in `chrome.storage.local` so Sift can build the URLs that load your likes.
 - **Your liked tracks and feed**: Fetched from SoundCloud's API (`api-v2.soundcloud.com`) and cached locally in your browser using `chrome.storage.local`. Cache persists until you explicitly refresh.
+- **Your repost IDs**: Fetched from `api-v2.soundcloud.com` so the repost button can show the correct state on each track row. Kept in memory for the session, not stored.
 - **Queue state and preferences**: Your queue order, playback position, and settings (ratio, duration filter) are stored locally in `chrome.storage.local` so they persist across sessions.
 - **Your moments**: When you press B to bookmark a moment in a set, Sift saves the timestamp, the track it belongs to, and any note you wrote. Stored locally in `chrome.storage.local`. Never transmitted anywhere.
 - **Local backups of moments**: To protect against data loss, Sift keeps a rolling backup of your moments and creates a one-time snapshot every time the extension is updated. All backups stay in `chrome.storage.local` and are never transmitted.
