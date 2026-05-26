@@ -1,4 +1,4 @@
-# Sift v0.5.1 - Release Notes
+# Sift v0.5.2 - Release Notes
 
 **Sift: SoundCloud, Tuned to You**
 
@@ -6,13 +6,12 @@
 
 ## Fixes
 
-- **Moments tab no longer shows queue controls.** The queue settings bar would reappear on the Moments tab whenever you tabbed back to Sift from another browser tab. Caused by the auth re-check on visibilitychange ignoring the active tab. Fixed.
-- **Em dash separator removed from moments table.** The bold group headers in the Moments tab no longer use an em dash between the set title and the account. Cleaner visual, and consistent with the project no-em-dash rule.
+- **Restored Like and Repost actions.** SoundCloud's anti-bot service had started rejecting Sift's direct write requests with a 403 challenge. Sift now routes Like, Unlike, Repost, and Un-repost actions through your open SoundCloud tab so they ride your real session and clear the challenge.
 
-## Other
+## Improvements
 
-- Privacy policy and Chrome Web Store listing permission justifications updated to reflect what v0.5.0 added (moments storage, moment backups, like/unlike/repost actions sent to SoundCloud, clarified SoundCloud-tab requirement).
-- Repeatable screenshot capture procedure documented in the Chrome Web Store upload checklist, including the DevTools dock-bottom gotcha that snaps the viewport down to 1088x680 when DevTools is right-docked.
+- **Clearer failure messages on Like and Repost.** Three new sticky messages tell you exactly what to do: when no SoundCloud tab is open, when Chrome's Memory Saver has unloaded your SoundCloud tab, and when SoundCloud's anti-bot pauses an action. Each replaces the previous silent red-flash on the button.
+- **Accessibility pass on the failure messages.** Screen readers now announce them. Keyboard users can dismiss with Escape. Dismiss-button contrast now passes WCAG AA. Tap target enlarged. Motion respects the system "Reduce motion" preference.
 
 ## Install
 

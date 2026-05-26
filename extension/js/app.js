@@ -280,6 +280,33 @@ function flashError(index, action) {
   setTimeout(() => btn.classList.remove('error'), 1000);
 }
 
+// Shared handler for the 4 like/repost API catch blocks. Surfaces the right
+// UI for known failures (no SC tab, DataDome challenge, auth) and flashes
+// the row button red for unknown errors.
+function handleWriteError(err, index, action) {
+  if (err.message === 'AUTH_EXPIRED' || err.message === 'NOT_AUTHENTICATED') {
+    checkAuth();
+    return;
+  }
+  if (err.message === 'NO_SC_TAB') {
+    showBookmarkToastMessage('Open a SoundCloud tab to like or repost.', { sticky: true });
+    flashError(index, action);
+    return;
+  }
+  if (err.message === 'SC_TAB_DISCARDED') {
+    showBookmarkToastMessage('Your SoundCloud tab is asleep. Click it to wake it up, then try again.', { sticky: true });
+    flashError(index, action);
+    return;
+  }
+  if (err.message === 'DATADOME_CHALLENGE') {
+    showBookmarkToastMessage('SoundCloud paused that action. Open your SoundCloud tab and interact with the page, then try again.', { sticky: true });
+    flashError(index, action);
+    return;
+  }
+  console.error(`[Sift] ${action} failed:`, err);
+  flashError(index, action);
+}
+
 async function handleLike(index) {
   const track = state.queue[index];
   if (!track) return;
@@ -290,9 +317,7 @@ async function handleLike(index) {
     try {
       await unlikeTrack(track.track_id);
     } catch (err) {
-      if (err.message === 'AUTH_EXPIRED' || err.message === 'NOT_AUTHENTICATED') { checkAuth(); return; }
-      console.error('[Sift] Unlike failed:', err);
-      flashError(index, 'like');
+      handleWriteError(err, index, 'like');
       return;
     }
     if (track.originalSource === 'likes') {
@@ -308,9 +333,7 @@ async function handleLike(index) {
     try {
       await likeTrack(track.track_id);
     } catch (err) {
-      if (err.message === 'AUTH_EXPIRED' || err.message === 'NOT_AUTHENTICATED') { checkAuth(); return; }
-      console.error('[Sift] Like failed:', err);
-      flashError(index, 'like');
+      handleWriteError(err, index, 'like');
       return;
     }
     track.liked = true;
@@ -330,9 +353,7 @@ async function handleRepost(index) {
     try {
       await unrepostTrack(track.track_id);
     } catch (err) {
-      if (err.message === 'AUTH_EXPIRED' || err.message === 'NOT_AUTHENTICATED') { checkAuth(); return; }
-      console.error('[Sift] Unrepost failed:', err);
-      flashError(index, 'repost');
+      handleWriteError(err, index, 'repost');
       return;
     }
     track.reposted = false;
@@ -340,9 +361,7 @@ async function handleRepost(index) {
     try {
       await repostTrack(track.track_id);
     } catch (err) {
-      if (err.message === 'AUTH_EXPIRED' || err.message === 'NOT_AUTHENTICATED') { checkAuth(); return; }
-      console.error('[Sift] Repost failed:', err);
-      flashError(index, 'repost');
+      handleWriteError(err, index, 'repost');
       return;
     }
     track.reposted = true;
@@ -783,13 +802,30 @@ function showBookmarkToastMessage(message, { sticky = false } = {}) {
   container.innerHTML = '';
   const toast = document.createElement('div');
   toast.className = 'toast' + (sticky ? ' toast-sticky' : '');
+  // Announce to assistive tech. Sticky toasts carry failure info that the
+  // user needs to act on; assertive ensures it isn't queued behind chatter.
+  toast.setAttribute('role', 'alert');
+  toast.setAttribute('aria-live', 'assertive');
+  toast.setAttribute('aria-atomic', 'true');
+  const iconHtml = sticky ? '<span class="toast-icon" aria-hidden="true">&#9888;</span>' : '';
   toast.innerHTML = `
+    ${iconHtml}
     <span class="toast-text">${escapeHtml(message)}</span>
     <button class="toast-dismiss" aria-label="Dismiss">&times;</button>
   `;
   container.appendChild(toast);
   if (sticky) {
-    toast.querySelector('.toast-dismiss').addEventListener('click', () => dismissToast(toast));
+    // Sticky toasts dismiss via X button or Escape key. Without the Escape
+    // path a keyboard-only user has to tab past the whole page to reach the X.
+    const dismissSticky = () => {
+      document.removeEventListener('keydown', escHandler);
+      dismissToast(toast);
+    };
+    const escHandler = (e) => {
+      if (e.key === 'Escape') dismissSticky();
+    };
+    toast.querySelector('.toast-dismiss').addEventListener('click', dismissSticky);
+    document.addEventListener('keydown', escHandler);
   } else {
     const timer = setTimeout(() => dismissToast(toast), 3000);
     toast.querySelector('.toast-dismiss').addEventListener('click', () => {

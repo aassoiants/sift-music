@@ -168,19 +168,33 @@ export async function clearCache() {
 // ── Like / Repost actions ────────────────────────────────────
 
 async function apiAction(method, url, oauthToken) {
-  const res = await fetch(url, {
-    method,
-    headers: {
-      Authorization: `OAuth ${oauthToken}`,
-      Accept: 'application/json',
-    },
+  // Proxy the write through the user's open SoundCloud tab so the request
+  // rides real soundcloud.com origin and cookies. Without this, DataDome
+  // anti-bot returns 403 on extension-origin writes. See background.js
+  // SC_WRITE_REQUEST handler.
+  return new Promise((resolve, reject) => {
+    chrome.runtime.sendMessage(
+      { type: 'SC_WRITE_REQUEST', method, url, oauthToken },
+      (response) => {
+        if (chrome.runtime.lastError) {
+          reject(new Error('IPC error'));
+          return;
+        }
+        if (!response) {
+          reject(new Error('No response from background'));
+          return;
+        }
+        if (response.ok) { resolve({ ok: true }); return; }
+        if (response.status === 401) { reject(new Error('AUTH_EXPIRED')); return; }
+        if (response.error === 'NO_SC_TAB') { reject(new Error('NO_SC_TAB')); return; }
+        if (response.error === 'SC_TAB_DISCARDED') { reject(new Error('SC_TAB_DISCARDED')); return; }
+        if (response.error === 'DATADOME_CHALLENGE') { reject(new Error('DATADOME_CHALLENGE')); return; }
+        const detail = response.error || `status=${response.status || 'n/a'}`;
+        console.error(`[Sift] API ${method} failed: ${detail}`);
+        reject(new Error(`API error: ${detail}`));
+      }
+    );
   });
-  if (res.status === 401) throw new Error('AUTH_EXPIRED');
-  if (!res.ok) {
-    console.error(`[Sift] API ${method} ${res.status}`);
-    throw new Error(`API error: ${res.status}`);
-  }
-  return { ok: true };
 }
 
 export async function likeTrack(trackId) {

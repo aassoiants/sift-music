@@ -1,6 +1,6 @@
 # Privacy Policy - Sift: SoundCloud, Tuned to You
 
-**Last updated: May 1, 2026**
+**Last updated: May 26, 2026**
 
 ## What Sift does
 
@@ -43,6 +43,7 @@ The only external service Sift talks to is **SoundCloud** (`soundcloud.com`, `ap
 |---|---|
 | `cookies` | Reads your existing SoundCloud OAuth token from `soundcloud.com` cookies. No cookies are created or modified. |
 | `storage` | Caches track data and persists your queue, playback position, settings, moments (timestamps and notes you wrote), and rolling/per-update moment backups locally. |
+| `scripting` | Runs a short-lived function in your open SoundCloud tab to perform Like and Repost actions there. Only fires when you click those buttons. The function does not persist beyond the action. |
 | `https://soundcloud.com/*` | Runs content scripts to extract the SoundCloud client ID needed for API authentication. Also detects whether a SoundCloud tab is open so Sift can prompt you to open one if needed (the tab keeps the client ID fresh). |
 | `https://api-v2.soundcloud.com/*` | Fetches your liked tracks, feed, and resolves audio stream URLs. Also sends like, unlike, repost, and un-repost actions when you click those buttons on a track row. |
 | `https://*.sndcdn.com/*` | Loads audio streams from SoundCloud's CDN for playback. |

@@ -1279,7 +1279,34 @@ body { background: #0d0d0d; color: #e0e0e0; font-family: 'Segoe UI', system-ui, 
   white-space: normal;
 }
 .toast.toast-sticky .toast-text {
-  color: #ffd0d0;
+  color: #ffe5e5;
+  font-size: 13px;
+  line-height: 1.45;
+}
+.toast.toast-sticky .toast-icon {
+  color: #ff5555;
+  font-size: 18px;
+  font-weight: bold;
+  line-height: 1;
+}
+.toast.toast-sticky .toast-dismiss {
+  color: #d0a8a8;
+}
+.toast.toast-sticky .toast-dismiss:hover {
+  color: #ffe5e5;
+  background: rgba(255, 80, 80, 0.2);
+}
+.toast.toast-sticky .toast-dismiss:focus-visible {
+  outline-color: #ff5555;
+}
+
+/* Respect users with vestibular sensitivity */
+@media (prefers-reduced-motion: reduce) {
+  .toast { animation: none; }
+  .toast.dismissing {
+    animation: none;
+    opacity: 0;
+  }
 }
 
 /* ── Update Available Banner ── */
@@ -1367,14 +1394,23 @@ body { background: #0d0d0d; color: #e0e0e0; font-family: 'Segoe UI', system-ui, 
 .toast-dismiss {
   background: none;
   border: none;
-  color: #666;
+  color: #b0a0a0;
   cursor: pointer;
-  font-size: 14px;
-  padding: 0 2px;
+  font-size: 16px;
+  padding: 4px 8px;
+  min-width: 28px;
+  min-height: 28px;
   flex-shrink: 0;
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  transition: color 0.15s, background 0.15s;
 }
 .toast-dismiss:hover {
-  color: #aaa;
+  color: #ffe5e5;
+  background: rgba(255, 255, 255, 0.06);
 }
 /* Toast note input (expanded from "+ Add note") */
 .toast-note-input {

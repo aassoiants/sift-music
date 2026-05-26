@@ -103,6 +103,10 @@ Required to read the user's existing SoundCloud OAuth token for API authenticati
 
 Stores the user's queue, playback position, settings (ratio, duration filter), cached track data, moments (timestamps and notes the user wrote when bookmarking moments in sets), and rolling and per-update moment backups for data-loss recovery. All in the browser, never transmitted.
 
+### scripting
+
+Routes the user's Like and Repost button clicks through the user's existing soundcloud.com tab via a one-shot injected function. Required because SoundCloud's anti-bot service rejects write API requests originating from the extension's chrome-extension:// origin. The injected function exists only for the duration of the user's click, performs a single fetch to SoundCloud's own API, and is not persistent.
+
 ### Host: soundcloud.com
 
 Content scripts run on soundcloud.com to extract the client\_id from SoundCloud's runtime configuration, which is required for API authentication. Also detects whether a SoundCloud tab is open so Sift can prompt the user to open one if needed (the tab keeps the client\_id fresh).
